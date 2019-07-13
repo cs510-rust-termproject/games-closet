@@ -1,0 +1,6 @@
+[package]
+name = "gamescloset"
+version = "0.1.0"
+authors = ["Andre Mukhsia <mukhsia@pdx.edu>", "Lane Barton <bartoniv@pdx.edu>"]
+
+[dependencies]
