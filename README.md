@@ -7,7 +7,7 @@ This crate leverages the [GGEZ crate](https://github.com/ggez/ggez) for creating
 
 | Game       | Implementation Status              | AI Opponents | Multiplayer |
 | ---------- | ---------------------------------- | ------------ | ----------- |
-| Connect 4  | In progess                         | In progess   | TBD         |
+| Connect 4  | In progress                        | In progress  | TBD         |
 | Battleship | Intended for future implementation | TBD          | TBD         |
 | Hearts     | Potential for implementation       | TBD          | TBD         |
 
