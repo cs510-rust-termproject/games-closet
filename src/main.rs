@@ -11,26 +11,52 @@ extern crate ggez;
 
 use ggez::event;
 use ggez::graphics;
+use ggez::input::mouse;
 use ggez::mint::Point2;
 use ggez::{Context, GameResult};
 
 /// Enum representing which game is loaded
 enum GameLoaded {
+    NONE,
     CONNECT4,
-    NONE
 }
 
 /*impl GameLoaded {
 
 }*/
 
+struct Button {
+    text: graphics::Text,
+    outline: graphics::Rect,
+    highlighted: bool,
+}
+
+impl Button {
+    fn new(text: graphics::Text, dim: graphics::Rect) -> Button {
+        Button { text: text, outline: dim, highlighted: false}
+    }
+
+    fn is_button_under_mouse(&mut self, ctx: &mut Context) -> bool {
+        let mouse_loc = mouse::position(ctx);
+        if self.outline.contains(mouse_loc)  {
+            self.highlighted = true;
+        } else {
+            self.highlighted = false;
+        }
+        self.highlighted
+    }
+
+}
+
 struct GameState {
     frames: usize,
-    text: graphics::Text,
+    buttons: Vec<Button>,
+    gameLoaded: GameLoaded,
 }
 
 impl event::EventHandler for GameState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        println!("Update called");
         Ok(())
     }
 
@@ -39,22 +65,28 @@ impl event::EventHandler for GameState {
 
         //Usage of Point2 from ggez eample 04_snake.rs, line 354 (https://github.com/ggez/ggez/blob/master/examples/04_snake.rs)
         let dest_point = Point2 { x: 10.0, y: 10.0 };
-        graphics::draw(ctx, &self.text, (dest_point,))?;
+        graphics::draw(ctx, &self.buttons[0].text, (dest_point,))?;
         graphics::present(ctx)?;
 
         Ok(())
     }
+
 }
 
 //Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
 impl GameState {
     fn new(ctx: &mut Context) -> GameResult<GameState> {
         //let font = graphics::Font::new(ctx, "/DejaVuSerif.ttf")?;
-        let text = graphics::Text::new("Test");
+        let text = graphics::Text::new("Connect4");
+        let text_width = text.width(ctx) as f32;
+        let text_height = text.height(ctx) as f32;
+        let mut btns = Vec::new();
+        btns.push(Button::new(text, graphics::Rect::new(10.0, 10.0, text_width, text_height)));
 
-        let s = GameState { frames: 0, text };
+        let s = GameState { frames: 0, buttons: btns, gameLoaded: GameLoaded::NONE };
         Ok(s)
     }
+
 }
 
 
