@@ -12,6 +12,7 @@ extern crate ggez;
 use ggez::event;
 use ggez::graphics;
 use ggez::input::mouse;
+use ggez::input::mouse::MouseButton;
 use ggez::mint::Point2;
 use ggez::{Context, GameResult};
 
@@ -56,19 +57,36 @@ struct GameState {
 
 impl event::EventHandler for GameState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        println!("Update called");
+        //println!("Update called");
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
-        //Usage of Point2 from ggez eample 04_snake.rs, line 354 (https://github.com/ggez/ggez/blob/master/examples/04_snake.rs)
+        //Usage of Point2 from ggez example 04_snake.rs, line 354 (https://github.com/ggez/ggez/blob/master/examples/04_snake.rs)
         let dest_point = Point2 { x: 10.0, y: 10.0 };
         graphics::draw(ctx, &self.buttons[0].text, (dest_point,))?;
         graphics::present(ctx)?;
 
         Ok(())
+    }
+
+    fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
+        //Check whether buttons are highlighted, updated states accordingly
+        for i in 0..self.buttons.len() {
+            self.buttons[i].is_button_under_mouse(_ctx);
+            println!("Button '{}' highlighted: {}", self.buttons[i].text.contents(), self.buttons[i].highlighted);
+        }
+    }
+
+    fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
+        //Check whether buttons are highlighted (set by clicking down). If one is highlighted and mouse still on it, button is "clicked"
+        for i in 0..self.buttons.len() {
+            if self.buttons[i].highlighted && self.buttons[i].is_button_under_mouse(_ctx) {
+                println!("Button '{}' clicked!!!!!!", self.buttons[i].text.contents());
+            }
+        }
     }
 
 }
