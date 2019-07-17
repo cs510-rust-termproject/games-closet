@@ -13,19 +13,18 @@ const BOARD_CELL_SIZE: (i32, i32) = (32, 32);
 const BOARD_DISC_RADIUS: i32 = 14;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-enum Color {
+enum MyColor {
+    White,
     Blue,
     Red,
 }
-use Color::*;
+use MyColor::*;
 
 /// Struct determines position on the board
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct GridPosition {
     x: i32,
     y: i32,
-    filled: bool,
-    color: Color;
 }
 
 impl GridPosition {
