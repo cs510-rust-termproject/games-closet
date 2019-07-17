@@ -105,6 +105,22 @@ impl GameState {
         Ok(s)
     }
 
+    //Method to print organized list of buttons
+    fn print_buttons(&mut self, ctx: &mut Context) -> graphics::Rect {
+        let screen = graphics::screen_coordinates(ctx);
+        let mut button_height = 0.0;
+        let mut button_width = 0.0;
+        for i in 0..self.buttons.len() {
+            button_height += 1.5*self.buttons[i].outline.h;
+            if button_width < self.buttons[i].outline.w {
+                button_width = self.buttons[i].outline.w;
+            }
+        }
+        let x_start = (screen.w - button_width) / 2 as f32;
+        let y_start = (screen.h - button_height) / 2 as f32;
+        graphics::Rect::new(x_start, y_start, button_width, button_height)
+    }
+
 }
 
 
