@@ -41,6 +41,18 @@ impl From<(i32, i32)> for GridPosition {
     }
 }
 
+/// From trait converting GridPosition to Rect; Used for drawing the Cells of the board
+impl From<GridPosition> for graphics::Rect {
+    fn from(pos: GridPosition) -> Self {
+        graphics::Rect::new_i32(
+            pos.x * BOARD_CELL_SIZE.0,
+            pos.y * BOARD_CELL_SIZE.1,
+            BOARD_CELL_SIZE.0,
+            BOARD_CELL_SIZE.1,
+        )
+    }
+}
+
 /// From trait converting GridPosition to Point2; Used for drawing playing discs on the board
 impl From<GridPosition> for Point2 {
     fn from(pos: GridPosition) -> Self {
