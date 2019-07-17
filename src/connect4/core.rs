@@ -62,3 +62,47 @@ impl From<GridPosition> for Point2 {
         )
     }
 }
+
+/// A single cell of the board
+struct Cell {
+    position: GridPosition,
+    filled: bool,
+    color: MyColor;
+}
+
+impl Cell {
+    pub fn new(pos: GridPosition) -> Self {
+        Cell {
+            position: pos,
+            filled: false,
+            color: White,
+        }
+    }
+
+    fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+        let mut circ_color;
+        match self.color {
+            White => graphics::WHITE,
+            Blue => graphics::Color::from_rgba(0,0,255,255),
+            Red => graphics::Color::from_rgba(255,0,0,255),
+        }
+        let mesh = MeshBuilder::new()
+        .rectangle(
+            ctx,
+            graphics::DrawMode::fill(),
+            self.position.into(),
+            graphics::Color::from_rgba(205,133,63,255),
+        )?
+        .circle(
+            ctx,
+            graphics::DrawMode::fill(),
+            self.position.into(),
+            BOARD_DISC_RADIUS,
+            0.0,
+            graphics::WHITE
+        )
+        .build(ctx)?;
+        graphics::draw(ctx, &mesh, Point2::new(0.0, 0.0))?;
+        OK(())
+    }
+}
