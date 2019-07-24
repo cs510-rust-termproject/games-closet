@@ -118,3 +118,30 @@ impl Cell {
         OK(())
     }
 }
+
+//Abstraction of a column of cells for connect 4 board
+struct Column {
+    position: GridPosition,
+    cells: Vec<Cell>,
+    //Maybe need a 'full' state if all cells in column are filled?
+}
+
+impl Column {
+    pub fn new(pos: GridPosition) -> Self {
+        Column {
+            position: pos,
+            cells: Vec<Cell>::new(),
+        }
+        for y in 0 .. BOARD_SIZE.0 {
+            cells.push(Cell::new(pos.0, pos.1 + (BOARD_CELL_SIZE * y)));
+        }
+    }
+
+    // Calls every Cell's draw fn
+    fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+        for y in 0 .. BOARD_SIZE.0 {
+            cells[y].draw(ctx);
+        }
+    }
+}
+
