@@ -69,6 +69,7 @@ impl From<(i32, i32)> for GridPosition {
     }
 }
 
+/*
 /// From trait converting GridPosition to Rect; Used for drawing the Cells of the board
 impl From<GridPosition> for graphics::Rect {
     fn from(pos: GridPosition) -> Self {
@@ -90,6 +91,7 @@ impl From<GridPosition> for Point2<f32> {
         }
     }
 }
+*/
 
 /// A single cell of the board
 struct Cell {
