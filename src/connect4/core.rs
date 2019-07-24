@@ -185,3 +185,29 @@ impl Board {
     }
 }
 
+impl event::EventHandler for GameState {
+    fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        Ok(())
+    }
+
+    fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        //Draw screen background
+        graphics::clear(ctx, graphics::BLACK);
+
+        // Draw Board
+        self.board.draw(ctx)?;
+        graphics::present(ctx)?;
+        ggez::timer::yield_now();
+        Ok(())
+    }
+}
+
+fn main() -> GameResult {
+    let (ctx, events_loop) = &mut ggez::ContextBuilder::new("Connect4", "Lane Barton & Andre Mukhsia")
+        .window_setup(ggez::conf::WindowSetup::default().title("Game Closet - Connect 4"))
+        .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1))
+        .build()?;
+
+    let state = &mut GameState::new(ctx)?;
+    event::run(ctx, events_loop, state)
+}
