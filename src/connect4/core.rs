@@ -182,6 +182,26 @@ impl Board {
 }
 
         }
+
+struct GameState {
+    frames: usize,
+    gameLoaded: GameLoaded,
+    /// connect4 board
+    board: Board,
+}
+
+//Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
+impl GameState {
+    fn new(ctx: &mut Context) -> GameResult<GameState> {
+        let board_pos = (10, 10);
+
+        let s = GameState { 
+            frames: 0, 
+            buttons: btns, 
+            gameLoaded: GameLoaded::NONE,
+            board: Board::new(board_pos.into());
+        };
+        Ok(s)
     }
 }
 
