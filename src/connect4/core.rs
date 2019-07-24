@@ -12,6 +12,7 @@ const BOARD_CELL_SIZE: (i32, i32) = (32, 32);
 /// Constant definition for the radius of each playing disc: 14px
 const BOARD_DISC_RADIUS: i32 = 14;
 
+/// Constant definition for the border size of the board
 const BOARD_BORDER_SIZE: i32 = 4
 
 const BOARD_TOTAL_SIZE: (f32, f32) = (
@@ -19,6 +20,7 @@ const BOARD_TOTAL_SIZE: (f32, f32) = (
         (BOARD_SIZE.1 as f32 * BOARD_CELL_SIZE.1 as f32) + BOARD_BORDER_SIZE,
 )
 
+/// Constant definition for the screen size of the game window
 const SCREEN_SIZE: (f32, f32) = (
     BOARD_TOTAL_SIZE.0 + 32 as f32,
     BOARD_TOTAL_SIZE.1 + 32 as f32,
@@ -103,7 +105,7 @@ impl Cell {
             ctx,
             graphics::DrawMode::fill(),
             self.position.into(),
-            graphics::Color::from_rgba(205,133,63,255),
+            graphics::Color::from_rgba(205,133,63,255)
         )?
         .circle(
             ctx,
@@ -112,7 +114,7 @@ impl Cell {
             BOARD_DISC_RADIUS,
             0.0,
             graphics::WHITE
-        )
+        )?
         .build(ctx)?;
         graphics::draw(ctx, &mesh, Point2::new(0.0, 0.0))?;
         OK(())
@@ -140,7 +142,45 @@ impl Column {
     // Calls every Cell's draw fn
     fn draw(&self, ctx: &mut Context) -> GameResult<()> {
         for y in 0 .. BOARD_SIZE.0 {
-            cells[y].draw(ctx);
+            cells[y].draw(ctx)?;
+        }
+        OK(())
+    }
+}
+
+struct Board {
+    position: GridPosition,
+    columns: Vec<Column>,
+}
+
+impl Board {
+    pub fn new(pos: GridPosition) -> Self {
+        Board {
+            position: pos,
+            columns: Vec<Column>::new(),
+        }
+        for x in 0 .. BOARD_SIZE.1 {
+            columns.push(Column::new(pos.0 + BOARD_BORDER_SIZE + (BOARD_CELL_SIZE * x), pos.1 + BOARD_BORDER_SIZE));
+        }
+    }
+
+    // Draws Board's rect and columns
+    fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+        let rectangle = graphics::Mesh::new_rectangle(
+            ctx, 
+            graphics::DrawMode::fill(), 
+            graphics::Rect(position.0, position.1, BOARD_TOTAL_SIZE.0, BOARD_TOTAL_SIZE.1), 
+            graphics::WHITE
+        )?;
+        graphics.draw(ctx, &rectangle, Point2::new(0.0, 0.0))?;
+
+        for x in 0 .. BOARD_SIZE.1 {
+            columns[x].draw(ctx)?;
+        }
+        Ok(())
+    }
+}
+
         }
     }
 }
