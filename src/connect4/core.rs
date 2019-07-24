@@ -24,14 +24,14 @@ const BOARD_SIZE: (i32, i32) = (6, 7);
 const BOARD_CELL_SIZE: (i32, i32) = (64, 64);
 
 /// Constant definition for the radius of each playing disc: 14px
-const BOARD_DISC_RADIUS: i32 = 48;
+const BOARD_DISC_RADIUS: i32 = 28;
 
 /// Constant definition for the border size of the board
-const BOARD_BORDER_SIZE: i32 = 12;
+const BOARD_BORDER_SIZE: i32 = 32;
 
 const BOARD_TOTAL_SIZE: (f32, f32) = (
+        ((BOARD_SIZE.1 * BOARD_CELL_SIZE.0) + BOARD_BORDER_SIZE) as f32,
         ((BOARD_SIZE.0 * BOARD_CELL_SIZE.0) + BOARD_BORDER_SIZE) as f32,
-        ((BOARD_SIZE.1 * BOARD_CELL_SIZE.1) + BOARD_BORDER_SIZE) as f32,
 );
 
 /// Constant definition for the screen size of the game window
@@ -141,8 +141,8 @@ impl Cell {
         mb.circle(
             graphics::DrawMode::fill(),
             Point2 {
-                x: (self.position.x * BOARD_CELL_SIZE.0 - ((BOARD_CELL_SIZE.0 - (2 * BOARD_DISC_RADIUS)) / 2)) as f32,
-                y: (self.position.y * BOARD_CELL_SIZE.1 - ((BOARD_CELL_SIZE.1 - (2 * BOARD_DISC_RADIUS)) / 2)) as f32
+                x: (self.position.x + (BOARD_CELL_SIZE.0 / 2)) as f32,
+                y: (self.position.y + (BOARD_CELL_SIZE.1 / 2)) as f32
             },
             BOARD_DISC_RADIUS as f32,
             0.0,
