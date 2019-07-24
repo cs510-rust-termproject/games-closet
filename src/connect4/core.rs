@@ -3,8 +3,8 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
-/// Constant definition for the connect4 board size: 7x6 cells
-const BOARD_SIZE: (i32, i32) = (7, 6);
+/// Constant definition for the connect4 board size: 6x7 cells, row x column
+const BOARD_SIZE: (i32, i32) = (6, 7);
 
 /// Constant definition for the pixel size for each square tiles: 32x32 pixels
 const BOARD_CELL_SIZE: (i32, i32) = (32, 32);
