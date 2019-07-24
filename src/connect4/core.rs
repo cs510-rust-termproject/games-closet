@@ -21,13 +21,13 @@ enum GameLoaded {
 const BOARD_SIZE: (i32, i32) = (6, 7);
 
 /// Constant definition for the pixel size for each square tiles: 32x32 pixels
-const BOARD_CELL_SIZE: (i32, i32) = (32, 32);
+const BOARD_CELL_SIZE: (i32, i32) = (64, 64);
 
 /// Constant definition for the radius of each playing disc: 14px
-const BOARD_DISC_RADIUS: i32 = 14;
+const BOARD_DISC_RADIUS: i32 = 48;
 
 /// Constant definition for the border size of the board
-const BOARD_BORDER_SIZE: i32 = 4;
+const BOARD_BORDER_SIZE: i32 = 12;
 
 const BOARD_TOTAL_SIZE: (f32, f32) = (
         ((BOARD_SIZE.0 * BOARD_CELL_SIZE.0) + BOARD_BORDER_SIZE) as f32,
@@ -107,28 +107,46 @@ impl Cell {
         }
     }
 
-    fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+    //Using example from 03_drawing.rs
+    fn draw <'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
         let circ_color = match self.color {
             White => graphics::WHITE,
             Blue => graphics::Color::from_rgba(0,0,255,255),
             Red => graphics::Color::from_rgba(255,0,0,255),
         };
-        let mesh = graphics::MeshBuilder::new()
-        .rectangle(
+        //println!("Building mesh\n");
+        
+        mb.rectangle(
             graphics::DrawMode::fill(),
-            self.position.into(),
+            graphics::Rect {
+                    x: self.position.x as f32, 
+                    y: self.position.y as f32, 
+                    w: BOARD_CELL_SIZE.0 as f32, 
+                    h: BOARD_CELL_SIZE.1 as f32,
+            },
             graphics::Color::from_rgba(205,133,63,255)
-        )
-        .circle(
+        );
+        mb.rectangle(
+            graphics::DrawMode::stroke(1.0),
+            graphics::Rect {
+                    x: self.position.x as f32, 
+                    y: self.position.y as f32, 
+                    w: BOARD_CELL_SIZE.0 as f32, 
+                    h: BOARD_CELL_SIZE.1 as f32,
+            },
+            graphics::BLACK
+        );
+        mb.circle(
             graphics::DrawMode::fill(),
-            self.position,
+            Point2 {
+                x: (self.position.x * BOARD_CELL_SIZE.0 - ((BOARD_CELL_SIZE.0 - (2 * BOARD_DISC_RADIUS)) / 2)) as f32,
+                y: (self.position.y * BOARD_CELL_SIZE.1 - ((BOARD_CELL_SIZE.1 - (2 * BOARD_DISC_RADIUS)) / 2)) as f32
+            },
             BOARD_DISC_RADIUS as f32,
             0.0,
             circ_color
-        )
-        .build(ctx)?;
-        graphics::draw(ctx, &mesh, (Point2 {x: 0.0, y: 0.0},))?;
-        Ok(())
+        );
+        mb
     }
 }
 
@@ -149,11 +167,12 @@ impl Column {
     }
 
     // Calls every Cell's draw fn
-    fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+    fn draw<'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
         for y in 0 .. BOARD_SIZE.0 as usize {
-            self.cells[y].draw(ctx)?;
+            self.cells[y].draw(mb);
+            //println!("Cell draw called\n");
         }
-        Ok(())
+        mb
     }
 }
 
@@ -170,10 +189,9 @@ impl Board {
         }
     }
 
-    // Draws Board's rect and columns
-    fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-        let rectangle = graphics::Mesh::new_rectangle(
-            ctx, 
+    // Builds Board's rect mesh and columns
+    fn draw <'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
+        mb.rectangle(
             graphics::DrawMode::fill(), 
             graphics::Rect {
                 x: self.position.x as f32, 
@@ -182,13 +200,23 @@ impl Board {
                 h: BOARD_TOTAL_SIZE.1 as f32,
             },
             graphics::WHITE
-        )?;
-        graphics::draw(ctx, &rectangle, (Point2 {x: 0.0, y: 0.0},))?;
+        );
+        mb.rectangle(
+            graphics::DrawMode::stroke(1.0),
+            graphics::Rect {
+                    x: self.position.x as f32, 
+                    y: self.position.y as f32, 
+                    w: BOARD_TOTAL_SIZE.0 as f32, 
+                    h: BOARD_TOTAL_SIZE.1 as f32,
+            },
+            graphics::Color::from_rgba(0, 255, 0, 255),
+        );
 
+        // TODO: Need to try to restructure to pass a meshBuilder, build the columns and cells, build it and then draw it
         for x in 0 .. BOARD_SIZE.1 as usize {
-            self.columns[x].draw(ctx)?;
+            self.columns[x].draw(mb);
         }
-        Ok(())
+        mb
     }
 }
 
@@ -222,9 +250,10 @@ impl event::EventHandler for GameState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         //Draw screen background
         graphics::clear(ctx, graphics::BLACK);
-
+        let mut mb = graphics::MeshBuilder::new();
         // Draw Board
-        self.board.draw(ctx)?;
+        let mesh = self.board.draw(&mut mb).build(ctx)?;
+        graphics::draw(ctx, &mesh, (Point2 {x: 0.0, y: 0.0},))?;
         graphics::present(ctx)?;
         ggez::timer::yield_now();
         Ok(())
