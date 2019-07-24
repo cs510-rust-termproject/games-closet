@@ -2,6 +2,20 @@
 // [This program is licensed under the "MIT License"]
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
+extern crate ggez;
+
+use ggez::{event, graphics, Context, GameResult};
+use ggez::mint::Point2;
+
+/// Enum representing which game is loaded
+enum GameLoaded {
+    NONE,
+    CONNECT4,
+}
+// Copyright © 2019 Andre Mukhsia, Lane Barton
+// [This program is licensed under the "MIT License"]
+// Please see the file LICENSE in the source
+// distribution of this software for license terms.
 
 /// Constant definition for the connect4 board size: 6x7 cells, row x column
 const BOARD_SIZE: (i32, i32) = (6, 7);
@@ -13,12 +27,12 @@ const BOARD_CELL_SIZE: (i32, i32) = (32, 32);
 const BOARD_DISC_RADIUS: i32 = 14;
 
 /// Constant definition for the border size of the board
-const BOARD_BORDER_SIZE: i32 = 4
+const BOARD_BORDER_SIZE: i32 = 4;
 
 const BOARD_TOTAL_SIZE: (f32, f32) = (
-        (BOARD_SIZE.0 as f32 * BOARD_CELL_SIZE.0 as f32) + BOARD_BORDER_SIZE,
-        (BOARD_SIZE.1 as f32 * BOARD_CELL_SIZE.1 as f32) + BOARD_BORDER_SIZE,
-)
+        ((BOARD_SIZE.0 * BOARD_CELL_SIZE.0) + BOARD_BORDER_SIZE) as f32,
+        ((BOARD_SIZE.1 * BOARD_CELL_SIZE.1) + BOARD_BORDER_SIZE) as f32,
+);
 
 /// Constant definition for the screen size of the game window
 const SCREEN_SIZE: (f32, f32) = (
@@ -44,14 +58,14 @@ struct GridPosition {
 impl GridPosition {
     /// Constructor for GridPosition
     pub fn new(x: i32, y: i32) -> Self {
-        GridPosition { x, y }
+        GridPosition {x, y}
     }
 }
 
 /// From trait converting i32 tuples to GridPosition
 impl From<(i32, i32)> for GridPosition {
     fn from(pos: (i32, i32)) -> Self {
-        GridPosition { x: pos.0, y: pos.1 }
+        GridPosition {x: pos.0, y: pos.1}
     }
 }
 
@@ -68,12 +82,12 @@ impl From<GridPosition> for graphics::Rect {
 }
 
 /// From trait converting GridPosition to Point2; Used for drawing playing discs on the board
-impl From<GridPosition> for Point2 {
+impl From<GridPosition> for Point2<f32> {
     fn from(pos: GridPosition) -> Self {
-        Point2::new(
-            (GridPosition.x as f32 * BOARD_CELL_SIZE.0 as f32 - ((BOARD_CELL_SIZE - (2 * BOARD_DISC_RADIUS)) as f32 / 2)),
-            (GridPosition.y as f32 * BOARD_CELL_SIZE.1 as f32 - ((BOARD_CELL_SIZE - (2 * BOARD_DISC_RADIUS)) as f32 / 2)),
-        )
+        Point2 {
+            x: (pos.x * BOARD_CELL_SIZE.0 - ((BOARD_CELL_SIZE.0 - (2 * BOARD_DISC_RADIUS)) / 2)) as f32,
+            y: (pos.y * BOARD_CELL_SIZE.1 - ((BOARD_CELL_SIZE.1 - (2 * BOARD_DISC_RADIUS)) / 2)) as f32
+        }
     }
 }
 
@@ -81,7 +95,7 @@ impl From<GridPosition> for Point2 {
 struct Cell {
     position: GridPosition,
     filled: bool,
-    color: MyColor;
+    color: MyColor,
 }
 
 impl Cell {
@@ -94,30 +108,27 @@ impl Cell {
     }
 
     fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-        let mut circ_color;
-        match self.color {
+        let circ_color = match self.color {
             White => graphics::WHITE,
             Blue => graphics::Color::from_rgba(0,0,255,255),
             Red => graphics::Color::from_rgba(255,0,0,255),
-        }
-        let mesh = MeshBuilder::new()
+        };
+        let mesh = graphics::MeshBuilder::new()
         .rectangle(
-            ctx,
             graphics::DrawMode::fill(),
             self.position.into(),
             graphics::Color::from_rgba(205,133,63,255)
-        )?
+        )
         .circle(
-            ctx,
             graphics::DrawMode::fill(),
-            self.position.into(),
-            BOARD_DISC_RADIUS,
+            self.position,
+            BOARD_DISC_RADIUS as f32,
             0.0,
-            graphics::WHITE
-        )?
+            circ_color
+        )
         .build(ctx)?;
-        graphics::draw(ctx, &mesh, Point2::new(0.0, 0.0))?;
-        OK(())
+        graphics::draw(ctx, &mesh, (Point2 {x: 0.0, y: 0.0},))?;
+        Ok(())
     }
 }
 
@@ -132,19 +143,17 @@ impl Column {
     pub fn new(pos: GridPosition) -> Self {
         Column {
             position: pos,
-            cells: Vec<Cell>::new(),
-        }
-        for y in 0 .. BOARD_SIZE.0 {
-            cells.push(Cell::new(pos.0, pos.1 + (BOARD_CELL_SIZE * y)));
+            // Adapted from: https://stackoverflow.com/questions/48021408/how-to-init-a-rust-vector-with-a-generator-function
+            cells: (0.. BOARD_SIZE.0).map(|y| Cell::new((pos.x, pos.y + (BOARD_CELL_SIZE.0 * y)).into())).collect(),
         }
     }
 
     // Calls every Cell's draw fn
     fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-        for y in 0 .. BOARD_SIZE.0 {
-            cells[y].draw(ctx)?;
+        for y in 0 .. BOARD_SIZE.0 as usize {
+            self.cells[y].draw(ctx)?;
         }
-        OK(())
+        Ok(())
     }
 }
 
@@ -157,10 +166,7 @@ impl Board {
     pub fn new(pos: GridPosition) -> Self {
         Board {
             position: pos,
-            columns: Vec<Column>::new(),
-        }
-        for x in 0 .. BOARD_SIZE.1 {
-            columns.push(Column::new(pos.0 + BOARD_BORDER_SIZE + (BOARD_CELL_SIZE * x), pos.1 + BOARD_BORDER_SIZE));
+            columns: (0.. BOARD_SIZE.1).map(|x| Column::new((pos.x + BOARD_BORDER_SIZE + (BOARD_CELL_SIZE.1 * x), pos.y + BOARD_BORDER_SIZE).into())).collect(),
         }
     }
 
@@ -169,13 +175,18 @@ impl Board {
         let rectangle = graphics::Mesh::new_rectangle(
             ctx, 
             graphics::DrawMode::fill(), 
-            graphics::Rect(position.0, position.1, BOARD_TOTAL_SIZE.0, BOARD_TOTAL_SIZE.1), 
+            graphics::Rect {
+                x: self.position.x as f32, 
+                y: self.position.y as f32, 
+                w: BOARD_TOTAL_SIZE.0 as f32, 
+                h: BOARD_TOTAL_SIZE.1 as f32,
+            },
             graphics::WHITE
         )?;
-        graphics.draw(ctx, &rectangle, Point2::new(0.0, 0.0))?;
+        graphics::draw(ctx, &rectangle, (Point2 {x: 0.0, y: 0.0},))?;
 
-        for x in 0 .. BOARD_SIZE.1 {
-            columns[x].draw(ctx)?;
+        for x in 0 .. BOARD_SIZE.1 as usize {
+            self.columns[x].draw(ctx)?;
         }
         Ok(())
     }
@@ -196,9 +207,8 @@ impl GameState {
 
         let s = GameState { 
             frames: 0, 
-            buttons: btns, 
             gameLoaded: GameLoaded::NONE,
-            board: Board::new(board_pos.into());
+            board: Board::new(board_pos.into()),
         };
         Ok(s)
     }
