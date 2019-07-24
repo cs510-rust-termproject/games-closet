@@ -12,6 +12,18 @@ const BOARD_CELL_SIZE: (i32, i32) = (32, 32);
 /// Constant definition for the radius of each playing disc: 14px
 const BOARD_DISC_RADIUS: i32 = 14;
 
+const BOARD_BORDER_SIZE: i32 = 4
+
+const BOARD_TOTAL_SIZE: (f32, f32) = (
+        (BOARD_SIZE.0 as f32 * BOARD_CELL_SIZE.0 as f32) + BOARD_BORDER_SIZE,
+        (BOARD_SIZE.1 as f32 * BOARD_CELL_SIZE.1 as f32) + BOARD_BORDER_SIZE,
+)
+
+const SCREEN_SIZE: (f32, f32) = (
+    BOARD_TOTAL_SIZE.0 + 32 as f32,
+    BOARD_TOTAL_SIZE.1 + 32 as f32,
+);
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 enum MyColor {
     White,
