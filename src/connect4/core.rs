@@ -181,7 +181,6 @@ impl Board {
     }
 }
 
-        }
 
 struct GameState {
     frames: usize,
