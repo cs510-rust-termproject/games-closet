@@ -12,10 +12,6 @@ enum GameLoaded {
     NONE,
     CONNECT4,
 }
-// Copyright © 2019 Andre Mukhsia, Lane Barton
-// [This program is licensed under the "MIT License"]
-// Please see the file LICENSE in the source
-// distribution of this software for license terms.
 
 /// Constant definition for the connect4 board size: 6x7 cells, row x column
 const BOARD_SIZE: (i32, i32) = (6, 7);
@@ -145,7 +141,7 @@ impl Cell {
                 y: (self.position.y + (BOARD_CELL_SIZE.1 / 2)) as f32
             },
             BOARD_DISC_RADIUS as f32,
-            0.0,
+            2.0,
             circ_color
         );
         mb
@@ -187,7 +183,7 @@ impl Board {
     pub fn new(pos: GridPosition) -> Self {
         Board {
             position: pos,
-            columns: (0.. BOARD_SIZE.1).map(|x| Column::new((pos.x + BOARD_BORDER_SIZE + (BOARD_CELL_SIZE.1 * x), pos.y + BOARD_BORDER_SIZE).into())).collect(),
+            columns: (0.. BOARD_SIZE.1).map(|x| Column::new((pos.x + (BOARD_BORDER_SIZE / 2) + (BOARD_CELL_SIZE.1 * x), pos.y + (BOARD_BORDER_SIZE/2)).into())).collect(),
         }
     }
 
