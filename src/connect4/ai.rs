@@ -14,6 +14,14 @@ struct GameState {
 impl GameState {
     fn get_board(&self) -> [[i32;7];6] {
         self.spaces
+    
+
+    fn get_column_height(&self, col: u32) -> i32 {
+        let i = 0;
+        while i < 7 && self.spaces[col][i] != 0 {
+            i++
+        }
+        i
     }
 
     fn on_board(&self, x: i32, y: i32) -> bool {
@@ -82,15 +90,16 @@ impl GameState {
 }
 
 struct MoveCheck {
-    myMove: bool
+    team: u32,
+    board: GameState,
     runs: [0u32;4]
 }
 
 impl MoveCheck {
-    fn init(&mut self, board: GameState, moveCol: u32, myMove: bool) -> MoveCheck {
-        let mut board = board.clone();
-        board.add_disc(moveCol);
-
+    fn init(&mut self, board: GameState, moveCol: u32, team: u32) -> MoveCheck {
+        self.team = team;
+        self.board = board.clone();
+        self.board.add_disc(moveCol, team);
     }
 
     fn compare(&self, other: MoveCheck) -> i32 {
@@ -105,11 +114,20 @@ impl MoveCheck {
     fn has_end_result(&self) -> bool {
         self.runs[4] > 0
     }
+
+
 }
 
 fn pick_optimal_move(state: GameState) -> i32 {
     let mut startBoard = GameState.get_board().clone();
+    
+}
 
+fn find_win_probability(board: GameState, team: u32, currMove: u32, lastMove: u32) -> f32 {
+    //Check win for AI turn
+    for i in 0..7 {
+        
+    }
 }
 
 fn main() {
