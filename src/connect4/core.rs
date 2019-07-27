@@ -14,7 +14,7 @@ enum GameLoaded {
 }
 
 /// Constant definition for the connect4 board size: 6x7 cells, row x column
-const BOARD_SIZE: (i32, i32) = (6, 7);
+pub const BOARD_SIZE: (i32, i32) = (6, 7);
 
 /// Constant definition for the pixel size for each square tiles: 32x32 pixels
 const BOARD_CELL_SIZE: (i32, i32) = (64, 64);
@@ -37,12 +37,13 @@ const SCREEN_SIZE: (f32, f32) = (
 );
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-enum MyColor {
+pub enum MyColor {
     White,
     Blue,
     Red,
 }
-use MyColor::*;
+
+//use MyColor::*;
 
 /// Struct determines position on the board
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -101,7 +102,7 @@ impl Cell {
         Cell {
             position: pos,
             filled: false,
-            color: White,
+            color: MyColor::White,
         }
     }
 
@@ -258,7 +259,7 @@ impl event::EventHandler for GameState {
     }
 }
 
-fn main() -> GameResult {
+pub fn main() -> GameResult {
     let (ctx, events_loop) = &mut ggez::ContextBuilder::new("Connect4", "Lane Barton & Andre Mukhsia")
         .window_setup(ggez::conf::WindowSetup::default().title("Game Closet - Connect 4"))
         .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1))
