@@ -4,6 +4,7 @@
 // distribution of this software for license terms.
 
 use connect4::core;
+use std::cmp::Ordering;
 
 struct GameState {
     spaces: [[i32;7];6]
@@ -87,17 +88,18 @@ impl GameState {
     }
 }
 
-/*struct MoveCheck {
-    team: u32,
+struct MoveCheck {
+    team: i32,
     board: GameState,
     runs: [0u32;4]
 }
 
 impl MoveCheck {
-    fn init(&mut self, board: GameState, moveCol: u32, team: u32) -> MoveCheck {
+    fn init(&mut self, board: GameState, moveCol: i32, team: i32) -> MoveCheck {
         self.team = team;
-        self.spaces = board.clone();
-        self.spaces.add_disc(moveCol, team);
+        self.board = board.clone();
+        self.runs = board.get_runs_from_point((moveCol, board.get_column_height(moveCol)), team);
+        self.board.add_disc(moveCol, team);
     }
 
     fn compare(&self, other: MoveCheck) -> i32 {
@@ -112,22 +114,83 @@ impl MoveCheck {
     fn has_end_result(&self) -> bool {
         self.runs[4] > 0
     }
-
-
-}*/
-
-fn pick_optimal_move(state: GameState) -> i32 {
-    let mut startBoard = state.get_board().clone();
-    0
 }
 
-/*fn find_win_probability(board: GameState, team: u32, currMove: u32, lastMove: u32) -> f32 {
-    //Check win for AI turn
-    for i in 0..7 {
-        
+impl Ord for MoveCheck {
+    fn cmp(&self, other: &Self) -> Ordering {
+        for i in (0..4).rev() {
+            if self.runs[i] != other.runs[i] {
+                if i*(self.runs[i]-other.runs[i]) < 0 {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            }
+        }
+        Ordering::Equal
     }
 }
 
-fn main() {
+/*impl PartialOrd for MoveCheck {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for MoveCheck {
+    fn eq(&self, other: &Self) -> bool {
+        self.height == other.height
+    }
+}*/
+
+struct AI {
+    team: i32,
+    difficulty: i32
+}
+
+impl AI {
+    fn pick_optimal_move(state: GameState) -> i32 {
+        let mut startBoard = state.get_board().clone();
+        0
+    }
+
+    fn find_win_probability(&self, board: GameState, currMove: i32, lastMove: i32) -> f32 {
+        //Check win for AI turn
+        let moves = Vec::new();
+        for i in 0..core::BOARD_SIZE.0 {
+            if currMove & 2 == 0 {
+                let oppMove = MoveCheck::init(board, i, self.team%2 + 1);
+                //If move would cause other team to win, return 0 as prob. Otherwise, call recursively on next move
+                if oppMove.has_end_result() {
+                    return 0;
+                } else if currMove < lastMove {
+                    return self.find_win_probability(oppMove.board, currMove+1, lastMove)
+                } else {
+                    moves.push(oppMove);
+                }
+            } else {
+                let aiMove = MoveCheck::init(board, i, self.team);
+                //If move would cause AI to win, return 1 as prob. Otherwise, call recursively on next move
+                if aiMove.has_end_result() {
+                    return 1;
+                } else if currMove < lastMove {
+                    return self.find_win_probability(aiMove.board, currMove+1, lastMove);
+                } else {
+                    moves.push(oppMove);
+                }
+            }
+        }
+        //Base case - currMove >= lastMove, so function falls through to here. Return
+        moves.sort(); 
+        if currMove & 2 == 0 {
+            //test
+        }
+        0.5
+    }
+}
+
+
+
+/*fn main() {
     panic!("Connect 4 is not implemented yet!")
 }*/
