@@ -8,6 +8,7 @@
 /// https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
 
 extern crate ggez;
+mod connect4;
 
 use ggez::event;
 use ggez::graphics;
@@ -123,7 +124,6 @@ impl GameState {
 
 }
 
-
 //Main game loop - tweaked from example in GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
 pub fn main() -> GameResult {
     let cb = ggez::ContextBuilder::new("gamescloset", "cs510");
@@ -131,4 +131,5 @@ pub fn main() -> GameResult {
 
     let state = &mut GameState::new(ctx)?;
     event::run(ctx, event_loop, state)
+    //connect4::core::main()
 }
