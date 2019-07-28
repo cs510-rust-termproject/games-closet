@@ -30,10 +30,20 @@ const BOARD_TOTAL_SIZE: (f32, f32) = (
         ((BOARD_SIZE.0 * BOARD_CELL_SIZE.0) + BOARD_BORDER_SIZE) as f32,
 );
 
+
+const TURN_INDICATOR_BOX_SIZE: (f32, f32) = (128.0, 64.0);
+
+const TURN_INDICATOR_FONT_SIZE: f32 = 48.0;
+
+const TURN_INDICATOR_POS_OFFSET: (i32, i32) = (10 + ((BOARD_TOTAL_SIZE.0 / 2.0) - (TURN_INDICATOR_BOX_SIZE.0 / 2.0)) as i32, 10);
+
+const BOARD_POS_OFFSET: (i32, i32) = (10, 10 + TURN_INDICATOR_POS_OFFSET.1 + TURN_INDICATOR_BOX_SIZE.1 as i32);
+
+
 /// Constant definition for the screen size of the game window
 const SCREEN_SIZE: (f32, f32) = (
     BOARD_TOTAL_SIZE.0 + 32 as f32,
-    BOARD_TOTAL_SIZE.1 + 32 as f32,
+    BOARD_TOTAL_SIZE.1 + TURN_INDICATOR_BOX_SIZE.1 + 32 as f32,
 );
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -345,48 +355,67 @@ impl Board {
     }
 }
 
-/*
 struct TurnIndicator {
-    pos: GridPosition,
+    position: GridPosition,
     team: i32,
 }
 
 impl TurnIndicator {
     pub fn new(pos: GridPosition) -> Self {
         TurnIndicator {
-            pos: pos,
+            position: pos,
             team: 0,
         }
     }
 
-    fn draw(&self, &mut ctx: Context) -> GameResult<()> {
-        if self.team == 0 {
-            graphics::Mesh::new_rectangle(ctx, )
-            let font = graphics::Font::new(ctx, "/DejaVuSerif.ttf")?;
-            let text = graphics::Text::new(("Hello world!", font, 48.0));
-            graphics::draw()
-        }
+    fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+         let textbox = graphics::Mesh::new_rectangle(
+            ctx, 
+            graphics::DrawMode::fill(),             
+            graphics::Rect {
+                x: self.position.x as f32, 
+                y: self.position.y as f32, 
+                w: TURN_INDICATOR_BOX_SIZE.0, 
+                h: TURN_INDICATOR_BOX_SIZE.1,
+            },
+            graphics::Color::from_rgba(205,133,63,255),
+        )?;
+        graphics::draw(ctx, &textbox, (Point2 {x: 0.0, y: 0.0},))?;
+        if self.team != 0 {
+            let text = graphics::Text::new((format!("Player {}'s turn", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE));
 
+            graphics::draw(ctx, &text, (Point2 {x: self.position.x as f32 + 10.0 , y: self.position.y as f32 + 10.0},))?;
+        }
+        Ok(())
+    }
+
+    pub fn change_team(&mut self, team: i32) {
+        self.team = team;
+    }
+
+    pub fn reset(&mut self) {
+        self.team = 0;
     }
 }
-*/
 
 struct GameState {
     frames: usize,
     gameLoaded: GameLoaded,
     /// connect4 board
     board: Board,
+    turnIndicator: TurnIndicator,
 }
 
 //Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
 impl GameState {
     fn new(ctx: &mut Context) -> GameResult<GameState> {
-        let board_pos = (10, 10);
-
+        let board_pos = BOARD_POS_OFFSET;
+        let turn_indicator_pos = TURN_INDICATOR_POS_OFFSET;
         let s = GameState { 
             frames: 0, 
             gameLoaded: GameLoaded::NONE,
             board: Board::new(board_pos.into()),
+            turnIndicator: TurnIndicator::new(turn_indicator_pos.into()),
         };
         Ok(s)
     }
@@ -404,6 +433,10 @@ impl event::EventHandler for GameState {
         // Draw Board
         let mesh = self.board.draw(&mut mb).build(ctx)?;
         graphics::draw(ctx, &mesh, (Point2 {x: 0.0, y: 0.0},))?;
+
+        // Draw turn indicator
+        self.turnIndicator.change_team(1);
+        self.turnIndicator.draw(ctx)?;
         graphics::present(ctx)?;
         ggez::timer::yield_now();
         Ok(())
