@@ -93,7 +93,7 @@ impl From<GridPosition> for Point2<f32> {
 /// A single cell of the board
 struct Cell {
     position: GridPosition,
-    filled: bool,
+    team: i32,
     color: MyColor,
 }
 
@@ -101,7 +101,7 @@ impl Cell {
     pub fn new(pos: GridPosition) -> Self {
         Cell {
             position: pos,
-            filled: false,
+            team: 0,
             color: MyColor::White,
         }
     }
@@ -153,7 +153,7 @@ impl Cell {
 struct Column {
     position: GridPosition,
     cells: Vec<Cell>,
-    //Maybe need a 'full' state if all cells in column are filled?
+    height: usize
 }
 
 impl Column {
@@ -162,6 +162,7 @@ impl Column {
             position: pos,
             // Adapted from: https://stackoverflow.com/questions/48021408/how-to-init-a-rust-vector-with-a-generator-function
             cells: (0.. BOARD_SIZE.0).map(|y| Cell::new((pos.x, pos.y + (BOARD_CELL_SIZE.0 * y)).into())).collect(),
+            height: 0
         }
     }
 
@@ -173,6 +174,16 @@ impl Column {
         }
         mb
     }
+
+    pub fn get_height(&self) -> usize {
+        self.height
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.height >= self.cells.len()
+    }
+
+
 }
 
 struct Board {
@@ -216,6 +227,85 @@ impl Board {
             self.columns[x].draw(mb);
         }
         mb
+    }
+
+    pub fn on_board(&self, pos: GridPosition) -> bool {
+        pos.x >= 0 && pos.x < BOARD_SIZE.0 && pos.y >= 0 && pos.y < BOARD_SIZE.1
+    }
+
+    pub fn get_column_height(&self, col: usize) -> usize {
+        self.columns.get(col).unwrap().get_height()
+    }
+
+    pub fn is_column_full(&self, col: usize) -> bool {
+        self.columns.get(col).unwrap().is_full()
+    }
+
+    pub fn get_cell_team(&self, pos: GridPosition) -> i32 {
+        self.columns.get(pos.x as usize).unwrap()
+            .cells.get(pos.y as usize).unwrap()
+            .team
+    }
+
+    //Method to get a "max" run including a starting point in a target direction for a given team.
+    //Accounts for runs towards and away from direction, but allows one space between tiles of the target team in
+    //target direction but no spaces in reverse direction. 
+    //The min value is 1; the max value returned is 4 even if a run is longer. If a space is used, the max returned value is 3 
+    //(as the space presumably prevents an actual run of 4). Cases with a run of 4 prior to space will return 4, except for edge 
+    //case where run goes from start and then completely in reverse direction. This can be caught by calling this method with reverse 
+    //direction
+    fn get_run_in_direction(&self, start: GridPosition, dir: GridPosition, team: i32) -> i32 {
+        let mut dir_active = true;
+        let mut rev_active = true;
+        let mut space_used = false;
+        let mut run_len = 1i32; //Start with dropped token
+        let mut i = 1; //Start one beyond dropped token
+        while run_len <= 4 && (dir_active || rev_active) {
+            dir_active = dir_active && self.on_board(GridPosition::new(start.x+i*dir.x, start.y+i*dir.y));
+            rev_active = rev_active && self.on_board(GridPosition::new(start.x-i*dir.x, start.y-i*dir.y));
+            //Do reverse case first for edge case of AASA_A is treated as a run of 4 and not 3 with a space
+            if rev_active {
+                if self.get_cell_team(GridPosition::new(start.x-i*dir.x, start.y-i*dir.y)) == team {
+                    run_len += 1;
+                } else {
+                    rev_active = false;
+                }
+            }
+            if dir_active {
+                let val = self.get_cell_team(GridPosition::new(start.x+i*dir.x, start.y+i*dir.y));
+                if val == team {
+                    run_len += 1;
+                    //Check for contiguous run of 4 before space, return immediately to prevent odd cases with spaces
+                    if !space_used && run_len >= 4 {
+                        return 4i32;
+                    }
+                } else if val == 0 && !space_used {
+                    space_used = true;
+                } else {
+                    dir_active = false;
+                }
+            }
+            i += 1;
+        }
+        if space_used {
+            std::cmp::min(run_len, 3)
+        //Todo: Handle case where "run" is blocked on both ends
+        } else {
+            std::cmp::min(run_len, 4)
+        }
+    }
+
+    //Method to return an array of runs from a start location for a given team, where array[i] returns the number of runs
+    //of length i-1. Accounts for all eight directions, but may have false duplicates (e.g. a run BAAAB will return have two
+    //runs of length 3 for team A even though technically its the same run)
+    fn get_runs_from_point(&self, start: GridPosition, team: i32) -> [i32;4] {
+        let mut output = [0i32;4];
+        let directions = vec![(1, 0), (1, 1), (0, 1), (-1, 1)];
+        for dir in directions {
+            output[(self.get_run_in_direction(start, GridPosition::new(dir.0, dir.1), team)-1) as usize] += 1;
+            output[(self.get_run_in_direction(start, GridPosition::new(-1*dir.0, -1*dir.1), team)-1) as usize] += 1;
+        }
+        output
     }
 }
 
