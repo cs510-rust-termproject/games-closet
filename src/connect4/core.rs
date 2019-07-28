@@ -147,6 +147,11 @@ impl Cell {
         );
         mb
     }
+
+    fn fill(&mut self, team: i32, color: MyColor) {
+        self.team = team;
+        self.color = color;
+    }
 }
 
 //Abstraction of a column of cells for connect 4 board
@@ -168,8 +173,8 @@ impl Column {
 
     // Calls every Cell's draw fn
     fn draw<'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
-        for y in 0 .. BOARD_SIZE.0 as usize {
-            self.cells[y].draw(mb);
+        for cell in &self.cells {
+            cell.draw(mb);
             //println!("Cell draw called\n");
         }
         mb
@@ -183,7 +188,25 @@ impl Column {
         self.height >= self.cells.len()
     }
 
+    /// Inserts a team's disc of a particular color into a cell
+    /// Returns true if disc successfully inserted
+    /// Returns false if column is full
+    pub fn insert(&mut self,team: i32, color: MyColor) -> bool {
+        if self.is_full() {
+            false
+        } else {
+            self.cells[self.height].fill(team, color);
+            self.height += 1;
+            true
+        }
+    }
 
+    pub fn reset(&mut self) {
+        self.height = 0;
+        for cell in &mut self.cells {
+            cell.fill(0, MyColor::White);
+        }
+    }
 }
 
 struct Board {
@@ -223,8 +246,8 @@ impl Board {
         );
 
         // TODO: Need to try to restructure to pass a meshBuilder, build the columns and cells, build it and then draw it
-        for x in 0 .. BOARD_SIZE.1 as usize {
-            self.columns[x].draw(mb);
+        for column in &self.columns {
+            column.draw(mb);
         }
         mb
     }
@@ -307,8 +330,46 @@ impl Board {
         }
         output
     }
+
+    /// Inserts a team's disc of a particular color into a cell
+    /// Returns true if disc successfully inserted
+    /// Returns false if column is full
+    pub fn insert(&mut self, position: GridPosition, team: i32, color: MyColor) -> bool {
+        self.columns[position.x as usize].insert(team, color)
+    }
+
+    pub fn reset(&mut self) {
+        for column in &mut self.columns {
+            column.reset();
+        }
+    }
 }
 
+/*
+struct TurnIndicator {
+    pos: GridPosition,
+    team: i32,
+}
+
+impl TurnIndicator {
+    pub fn new(pos: GridPosition) -> Self {
+        TurnIndicator {
+            pos: pos,
+            team: 0,
+        }
+    }
+
+    fn draw(&self, &mut ctx: Context) -> GameResult<()> {
+        if self.team == 0 {
+            graphics::Mesh::new_rectangle(ctx, )
+            let font = graphics::Font::new(ctx, "/DejaVuSerif.ttf")?;
+            let text = graphics::Text::new(("Hello world!", font, 48.0));
+            graphics::draw()
+        }
+
+    }
+}
+*/
 
 struct GameState {
     frames: usize,
