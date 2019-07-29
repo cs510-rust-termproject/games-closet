@@ -7,6 +7,7 @@ use connect4::core::GridPosition;
 use connect4::core::Board;
 use connect4::core::GameState;
 use connect4::core::BOARD_SIZE;
+use connect4::core::MyColor;
 use std::cmp::Ordering;
 
 struct MoveCheck {
@@ -17,9 +18,9 @@ struct MoveCheck {
 
 impl MoveCheck {
     fn init(board: Board, moveCol: i32, team: i32) -> Self {
-        let newBoard = board.clone();
+        let mut newBoard = board.clone();
         let runs = newBoard.get_runs_from_point(GridPosition::new(moveCol, newBoard.get_column_height(moveCol as usize) as i32), team);
-        newBoard.add_disc(moveCol, team);
+        newBoard.insert(moveCol, team, MyColor::White);
         MoveCheck { team: team, board: newBoard, runs: runs }
     }
 
@@ -82,7 +83,8 @@ impl AI {
         let mut bestMove = -1;
         let mut bestProb = 0.0;
         for i in 0..BOARD_SIZE.0 {
-            let currBoard = state.board.clone().add_disc(i);
+            let mut currBoard = state.board.clone();
+            currBoard.insert(i, self.team, MyColor::White);
             let currProb = self.find_win_probability(currBoard, 0, self.difficulty);
             if currProb == 1.0 {
                 return i as i32;
@@ -96,9 +98,10 @@ impl AI {
 
     fn find_win_probability(&self, board: Board, currMove: i32, lastMove: i32) -> f32 {
         //Check win for AI turn
-        let moves = Vec::new();
+        let mut moves = Vec::new();
         for i in 0..BOARD_SIZE.0 {
             if !board.is_column_full(i as usize) {
+                let board = board.clone();
                 if currMove & 2 == 1 {
                     let oppMove = MoveCheck::init(board, i, self.team%2 + 1);
                     //If move would cause other team to win, return 0 as prob. Otherwise, call recursively on next move

@@ -148,6 +148,11 @@ impl Cell {
         );
         mb
     }
+
+    fn fill(&mut self, team: i32, color: MyColor) {
+        self.team = team;
+        self.color = color;
+    }
 }
 
 //Abstraction of a column of cells for connect 4 board
@@ -183,6 +188,19 @@ impl Column {
 
     pub fn is_full(&self) -> bool {
         self.height >= self.cells.len()
+    }
+
+    /// Inserts a team's disc of a particular color into a cell
+    /// Returns true if disc successfully inserted
+    /// Returns false if column is full
+    pub fn insert(&mut self,team: i32, color: MyColor) -> bool {
+        if self.is_full() {
+            false
+        } else {
+            self.cells[self.height].fill(team, color);
+            self.height += 1;
+            true
+        }
     }
 
 
@@ -336,6 +354,14 @@ impl Board {
         }
         output
     }
+
+    /// Inserts a team's disc of a particular color into a cell
+    /// Returns true if disc successfully inserted
+    /// Returns false if column is full
+    pub fn insert(&mut self, position: i32, team: i32, color: MyColor) -> bool {
+        self.columns[position as usize].insert(team, color)
+    }
+
 }
 
 
@@ -343,7 +369,7 @@ pub struct GameState {
     frames: usize,
     gameLoaded: GameLoaded,
     /// connect4 board
-    board: Board,
+    pub board: Board,
 }
 
 //Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
