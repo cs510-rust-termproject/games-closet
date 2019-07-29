@@ -91,6 +91,7 @@ impl From<GridPosition> for Point2<f32> {
 */
 
 /// A single cell of the board
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Cell {
     position: GridPosition,
     team: i32,
@@ -150,6 +151,7 @@ impl Cell {
 }
 
 //Abstraction of a column of cells for connect 4 board
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Column {
     position: GridPosition,
     cells: Vec<Cell>,
@@ -186,6 +188,7 @@ impl Column {
 
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Board {
     position: GridPosition,
     columns: Vec<Column>,
@@ -257,41 +260,67 @@ impl Board {
     fn get_run_in_direction(&self, start: GridPosition, dir: GridPosition, team: i32) -> i32 {
         let mut dir_active = true;
         let mut rev_active = true;
-        let mut space_used = false;
+        let mut dir_spaces_used = 0;
+        let mut rev_space_used = false;
         let mut run_len = 1i32; //Start with dropped token
+        let mut potential_len = 0;
         let mut i = 1; //Start one beyond dropped token
         while run_len <= 4 && (dir_active || rev_active) {
             dir_active = dir_active && self.on_board(GridPosition::new(start.x+i*dir.x, start.y+i*dir.y));
             rev_active = rev_active && self.on_board(GridPosition::new(start.x-i*dir.x, start.y-i*dir.y));
             //Do reverse case first for edge case of AASA_A is treated as a run of 4 and not 3 with a space
             if rev_active {
-                if self.get_cell_team(GridPosition::new(start.x-i*dir.x, start.y-i*dir.y)) == team {
-                    run_len += 1;
-                } else {
+                let val = self.get_cell_team(GridPosition::new(start.x-i*dir.x, start.y-i*dir.y));
+                //If token not for team in cell, end of search in rev direction
+                if val != 0 && val != team {
                     rev_active = false;
+                //If no spaces used, either add to run_len and/or potential_len depending on if cell is empty or matches team
+                } else if !rev_space_used {
+                    if val == team {
+                        run_len += 1;
+                    } else {
+                        rev_space_used = true;
+                    }
+                    potential_len += 1;
+                //If space in rev direction found, just add to potential run len to track that
+                } else {
+                    potential_len += 1;
                 }
             }
             if dir_active {
                 let val = self.get_cell_team(GridPosition::new(start.x+i*dir.x, start.y+i*dir.y));
-                if val == team {
-                    run_len += 1;
-                    //Check for contiguous run of 4 before space, return immediately to prevent odd cases with spaces
-                    if !space_used && run_len >= 4 {
-                        return 4i32;
-                    }
-                } else if val == 0 && !space_used {
-                    space_used = true;
-                } else {
+                //If token not for team in cell, end of search in target direction
+                if val != 0 && val != team {
                     dir_active = false;
+                //If 0 or 1 spaces in target direction used, either add to run_len and/or potential_run depending on if cell is empty or matches team
+                } else if dir_spaces_used <=  1 {
+                    if val == team {
+                        run_len += 1;
+                        //If you have a contiguous run of 4 with no spaces, immediately return because a winning run has been found!
+                        if (run_len >= 4 && dir_spaces_used == 0) {
+                            return 4i32;
+                        }
+                    } else {
+                        dir_spaces_used +=1;
+                    }
+                    potential_len += 1;
+                //If more than one space in target direction used, only add to potential length for non-enemy cells
+                } else {
+                    potential_len += 1;
                 }
             }
             i += 1;
         }
-        if space_used {
-            std::cmp::min(run_len, 3)
-        //Todo: Handle case where "run" is blocked on both ends
+        //If the potential of the run is not 4 or more, return 0 because it is not a viable run
+        if potential_len < 4 {
+            return 0i32;
+        //Otherwise, return the minimum of the run_len and 4 (if no spaces) or 3 (if one space used)
         } else {
-            std::cmp::min(run_len, 4)
+            if dir_spaces_used > 0 {
+                std::cmp::min(run_len, 3)
+            } else {
+                std::cmp::min(run_len, 4)
+            }
         }
     }
 
