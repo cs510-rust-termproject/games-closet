@@ -47,7 +47,7 @@ pub enum MyColor {
 
 /// Struct determines position on the board
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-struct GridPosition {
+pub struct GridPosition {
     x: i32,
     y: i32,
 }
@@ -151,7 +151,7 @@ impl Cell {
 }
 
 //Abstraction of a column of cells for connect 4 board
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 struct Column {
     position: GridPosition,
     cells: Vec<Cell>,
@@ -188,8 +188,8 @@ impl Column {
 
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-struct Board {
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Board {
     position: GridPosition,
     columns: Vec<Column>,
 }
@@ -297,7 +297,7 @@ impl Board {
                     if val == team {
                         run_len += 1;
                         //If you have a contiguous run of 4 with no spaces, immediately return because a winning run has been found!
-                        if (run_len >= 4 && dir_spaces_used == 0) {
+                        if run_len >= 4 && dir_spaces_used == 0 {
                             return 4i32;
                         }
                     } else {
@@ -327,7 +327,7 @@ impl Board {
     //Method to return an array of runs from a start location for a given team, where array[i] returns the number of runs
     //of length i-1. Accounts for all eight directions, but may have false duplicates (e.g. a run BAAAB will return have two
     //runs of length 3 for team A even though technically its the same run)
-    fn get_runs_from_point(&self, start: GridPosition, team: i32) -> [i32;4] {
+    pub fn get_runs_from_point(&self, start: GridPosition, team: i32) -> [i32;4] {
         let mut output = [0i32;4];
         let directions = vec![(1, 0), (1, 1), (0, 1), (-1, 1)];
         for dir in directions {
@@ -339,7 +339,7 @@ impl Board {
 }
 
 
-struct GameState {
+pub struct GameState {
     frames: usize,
     gameLoaded: GameLoaded,
     /// connect4 board
@@ -387,3 +387,16 @@ pub fn main() -> GameResult {
     let state = &mut GameState::new(ctx)?;
     event::run(ctx, events_loop, state)
 }
+
+
+/*#[cfg(test)]
+mod core_tests {
+    mod Board {
+        mod get_run_in_direction { 
+            #[test]
+            fn should_panic() {
+                assert_eq!(4, 6);
+            }
+        }
+    }
+}*/

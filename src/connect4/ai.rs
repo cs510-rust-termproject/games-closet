@@ -3,21 +3,24 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
-use connect4::core;
+use connect4::core::GridPosition;
+use connect4::core::Board;
+use connect4::core::GameState;
+use connect4::core::BOARD_SIZE;
 use std::cmp::Ordering;
 
 struct MoveCheck {
     team: i32,
-    board: core::Board,
-    runs: [0i32;4]
+    board: Board,
+    runs: [i32;4]
 }
 
 impl MoveCheck {
     fn init(board: Board, moveCol: i32, team: i32) -> Self {
         let newBoard = board.clone();
-        let runs = newBoard.get_runs_from_point((moveCol, newBoard.get_column_height(moveCol)), team);
-        self.board.add_disc(moveCol, team);
-        MoveCheck { team, newBoard, runs }
+        let runs = newBoard.get_runs_from_point(GridPosition::new(moveCol, newBoard.get_column_height(moveCol as usize) as i32), team);
+        newBoard.add_disc(moveCol, team);
+        MoveCheck { team: team, board: newBoard, runs: runs }
     }
 
     /*fn compare(&self, other: MoveCheck) -> i32 {
@@ -34,14 +37,15 @@ impl MoveCheck {
     }
 }
 
+//Ordering implementation based on documentation example (https://doc.rust-lang.org/std/cmp/trait.Ord.html), tailored to compare MoveCheck's runs
 impl Ord for MoveCheck {
     fn cmp(&self, other: &Self) -> Ordering {
         for i in (0..4).rev() {
             if self.runs[i] != other.runs[i] {
-                if i*(self.runs[i]-other.runs[i]) < 0 {
-                    Ordering::Less
+                if (i as i32)*(self.runs[i]-other.runs[i]) < 0 {
+                    return Ordering::Less;
                 } else {
-                    Ordering::Greater
+                    return Ordering::Greater;
                 }
             }
         }
@@ -49,17 +53,20 @@ impl Ord for MoveCheck {
     }
 }
 
-/*impl PartialOrd for MoveCheck {
+impl PartialOrd for MoveCheck {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
+
 impl PartialEq for MoveCheck {
     fn eq(&self, other: &Self) -> bool {
-        self.height == other.height
+        self.runs == other.runs
     }
-}*/
+}
+
+impl Eq for MoveCheck {}
 
 struct AI {
     team: i32,
@@ -74,11 +81,11 @@ impl AI {
     fn pick_optimal_move(&self, state: GameState) -> i32 {
         let mut bestMove = -1;
         let mut bestProb = 0.0;
-        for i in 0..core::BOARD_SIZE.0 {
-            let currBoard = state.get_board().clone().add_disc(i);
-            let currProb = self.find_win_probability(startBoard, 0, self.difficulty);
+        for i in 0..BOARD_SIZE.0 {
+            let currBoard = state.board.clone().add_disc(i);
+            let currProb = self.find_win_probability(currBoard, 0, self.difficulty);
             if currProb == 1.0 {
-                i
+                return i as i32;
             } else if currProb >= bestProb {
                 bestProb = currProb;
                 bestMove = i;
@@ -90,13 +97,13 @@ impl AI {
     fn find_win_probability(&self, board: Board, currMove: i32, lastMove: i32) -> f32 {
         //Check win for AI turn
         let moves = Vec::new();
-        for i in 0..core::BOARD_SIZE.0 {
-            if !board.is_column_full(i) {
+        for i in 0..BOARD_SIZE.0 {
+            if !board.is_column_full(i as usize) {
                 if currMove & 2 == 1 {
                     let oppMove = MoveCheck::init(board, i, self.team%2 + 1);
                     //If move would cause other team to win, return 0 as prob. Otherwise, call recursively on next move
                     if oppMove.has_end_result() {
-                        return 0;
+                        return 0.0;
                     } else if currMove < lastMove {
                         return self.find_win_probability(oppMove.board, currMove+1, lastMove)
                     } else {
@@ -106,11 +113,11 @@ impl AI {
                     let aiMove = MoveCheck::init(board, i, self.team);
                     //If move would cause AI to win, return 1 as prob. Otherwise, call recursively on next move
                     if aiMove.has_end_result() {
-                        return 1;
+                        return 1.0;
                     } else if currMove < lastMove {
                         return self.find_win_probability(aiMove.board, currMove+1, lastMove);
                     } else {
-                        moves.push(oppMove);
+                        moves.push(aiMove);
                     }
                 }
             }
@@ -125,14 +132,14 @@ impl AI {
             if currMove & 2 == 1 {
                 let worstCaseRuns = moves.get(moves.len()-1).unwrap().runs;
                 //Return 1-weighted prob of enemy getting winning move in future (divided by two because duplicates run in opposite directions
-                //likely created). Also doesn't go below probability of 0 for consistency
-                std::cmp::max(0.0, 1.0-(0.5*worstCaseRuns[3]+0.25*worstCaseRuns[2]+0.125*worstCaseRuns[1])/2)
+                //likely created). Also doesn't go below probability of 0 for consistency (why .max(0) is added)
+                (1.0-(0.5*(worstCaseRuns[3] as f32)+0.25*(worstCaseRuns[2] as f32)+0.125*(worstCaseRuns[1] as f32))/2.0).max(0.0)
             //AI turn
             } else {
-                let bestCaseRuns = moves.get(moves.len()-1).unwrap().runs;
+                let bestCaseRuns = moves.get(0).unwrap().runs;
                 //Return weighted prob of enemy getting winning move in future (divided by two because duplicates run in opposite directions
-                //likely created). Also doesn't go above probability of 1 for consistency
-                std::cmp::min(1.0, (0.5*bestCaseRuns[3]+0.25*bestCaseRuns[2]+0.125*bestCaseRuns[1])/2)
+                //likely created). Also doesn't go above probability of 1 for consistency why .min(1) is added)
+                (0.5*(bestCaseRuns[3] as f32)+0.25*(bestCaseRuns[2] as f32)+0.125*(bestCaseRuns[1] as f32)/2.0).min(1.0)
             }
         }
     }
