@@ -281,7 +281,7 @@ impl Board {
         let mut dir_spaces_used = 0;
         let mut rev_space_used = false;
         let mut run_len = 1i32; //Start with dropped token
-        let mut potential_len = 0;
+        let mut potential_len = 1; //Assume potential length starts at 1 for dropped token
         let mut i = 1; //Start one beyond dropped token
         while run_len <= 4 && (dir_active || rev_active) {
             dir_active = dir_active && self.on_board(GridPosition::new(start.x+i*dir.x, start.y+i*dir.y));
@@ -312,12 +312,11 @@ impl Board {
                     dir_active = false;
                 //If 0 or 1 spaces in target direction used, either add to run_len and/or potential_run depending on if cell is empty or matches team
                 } else if dir_spaces_used <=  1 {
-                    if val == team {
-                        run_len += 1;
-                        //If you have a contiguous run of 4 with no spaces, immediately return because a winning run has been found!
-                        if run_len >= 4 && dir_spaces_used == 0 {
-                            return 4i32;
-                        }
+                    //If you have a contiguous run of 4 with no spaces, immediately return because a winning run has been found!
+                    if run_len >= 4 && dir_spaces_used == 0 {
+                        return 4i32;
+                    } else if val == team {
+                        run_len += 1;   
                     } else {
                         dir_spaces_used +=1;
                     }
@@ -430,6 +429,9 @@ mod core_tests {
             use super::*;
             use connect4::core::Board;
 
+            //Method to create a board state from a set of vectors, where 0 is empty and 1 or 2 team tokens
+            //Note that input is board[column][row], so if you want to add a team 1 token in column 4, row 0, then
+            //the board input should have board[4][0] = 1
             fn create_test_board(board: Vec<Vec<i32>>) -> Board {
                 let mut output = Board::new(GridPosition{ x: 0, y:0 });
                 for i in 0..BOARD_SIZE.1 {
@@ -456,6 +458,180 @@ mod core_tests {
                                 vec![0,]];
                 let board = create_test_board(data);
                 assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 3);
+            }
+
+            #[test]
+            fn should_find_not_be_more_than_4() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 4);
+            }
+
+            #[test]
+            fn should_find_run_with_space() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 3);
+            }
+
+            #[test]
+            fn should_find_not_be_more_than_3_with_space() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 3);
+            }
+
+            #[test]
+            fn should_not_count_two_spaces() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 1);
+            }
+
+            #[test]
+            fn should_not_count_past_space_in_rev_direction() {
+                let data = vec![vec![1,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![0,],
+                                vec![0,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 2);
+            }
+
+            #[test]
+            fn should_return_run_of_4_prior_to_space() {
+                //Should return 4
+                let run1 = vec![vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,]];
+                let board = create_test_board(run1);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 4);
+                //This should return 4 - handled by rev direction case
+                let run2 = vec![vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,]];
+                let board = create_test_board(run2);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(2, 0), GridPosition::new(1, 0), 1), 4);
+                //This should not return 4 - handled by rev direction case
+                let run3 = vec![vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,],
+                                vec![0,]];
+                let board = create_test_board(run3);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 3);
+            }
+
+            #[test]
+            fn returns_0_if_run_of_4_impossible() {
+                //Runs 1-3 should return 0, Runs 4-5 should pass due to potential in either direction
+                let run1 = vec![vec![0,],
+                                vec![2,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![2,],
+                                vec![1,]];
+                let mut board = create_test_board(run1);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 0);
+                let run2 = vec![vec![2,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![2,],
+                                vec![0,],
+                                vec![1,]];
+                board = create_test_board(run2);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 0);
+                let run3 = vec![vec![0,],
+                                vec![1,],
+                                vec![1,], //Checking here
+                                vec![2,],
+                                vec![0,],
+                                vec![0,],
+                                vec![0,]];
+                board = create_test_board(run3);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(2, 0), GridPosition::new(1, 0), 1), 0);
+                let run4 = vec![vec![1,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![2,],
+                                vec![0,],
+                                vec![1,]];
+                board = create_test_board(run4);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 1);
+                let run5 = vec![vec![2,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![0,],
+                                vec![2,],
+                                vec![1,]];
+                board = create_test_board(run5);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 1);
+            }
+
+            #[test]
+            fn should_work_in_all_directions() {
+                //Note - the runs may not match in opposite directions!
+                let data = vec![vec![1,1,0,1,2,0,0],
+                                vec![1,2,2,1,2,2,0],
+                                vec![2,1,0,2,1,0,0],
+                                vec![2,1,1,1,0,0,0], //Target is in middle of this column
+                                vec![0,0,0,0,0,0,0],
+                                vec![1,1,0,1,2,1,0],
+                                vec![1,1,2,2,2,0,0]];
+                let board = create_test_board(data);
+                //Vertical directions - should be 3 in both cases
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(0, 1), 1), 3);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(0, -1), 1), 3);
+                //Horizontal directions - should be 0 in both cases since two 2s block potential run of 4
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, 0), 1), 0);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, 0), 1), 0);
+                //Bottom-left to upper-right diagonal directions - should be 1 going down and 2 going up (since space then token in upper-right dir)
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, 1), 1), 2);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, -1), 1), 1);
+                //Bottom-right to upper-left diagonal directions - should be 2 going up and 3 going down (since space in down dir, but blocked going up)
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, 1), 1), 2);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, -1), 1), 3);
             }
         }
     }
