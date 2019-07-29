@@ -251,7 +251,7 @@ impl Board {
     }
 
     pub fn on_board(&self, pos: GridPosition) -> bool {
-        pos.x >= 0 && pos.x < BOARD_SIZE.0 && pos.y >= 0 && pos.y < BOARD_SIZE.1
+        pos.x >= 0 && pos.x < BOARD_SIZE.1 && pos.y >= 0 && pos.y < BOARD_SIZE.0
     }
 
     pub fn get_column_height(&self, col: usize) -> usize {
@@ -415,14 +415,48 @@ pub fn main() -> GameResult {
 }
 
 
-/*#[cfg(test)]
+#[cfg(test)]
 mod core_tests {
+    use super::*;
     mod Board {
+        use super::*;
+        /*use connect4::core::Board;
+        use connect4::core::GridPosition;
+        use connect4::core::MyColor;        
+        use connect4::core::BOARD_SIZE;
+        //use connect4::core::BOARD_SIZE;*/
+
         mod get_run_in_direction { 
+            use super::*;
+            use connect4::core::Board;
+
+            fn create_test_board(board: Vec<Vec<i32>>) -> Board {
+                let mut output = Board::new(GridPosition{ x: 0, y:0 });
+                for i in 0..BOARD_SIZE.1 {
+                    if (i as usize) < board.len() {
+                        let col = board.get(i as usize).unwrap();
+                        for j in 0..BOARD_SIZE.0 {
+                            if (j as usize) < col.len() {
+                                output.insert(i, *col.get(j as usize).unwrap(), MyColor::White);
+                            }
+                        }
+                    }
+                }
+                output
+            }
+
             #[test]
-            fn should_panic() {
-                assert_eq!(4, 6);
+            fn should_find_contiguous_run() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 3);
             }
         }
     }
-}*/
+}
