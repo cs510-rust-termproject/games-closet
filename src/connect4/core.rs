@@ -48,8 +48,8 @@ pub enum MyColor {
 /// Struct determines position on the board
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct GridPosition {
-    x: i32,
-    y: i32,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl GridPosition {
@@ -348,8 +348,14 @@ impl Board {
         let mut output = [0i32;4];
         let directions = vec![(1, 0), (1, 1), (0, 1), (-1, 1)];
         for dir in directions {
-            output[(self.get_run_in_direction(start, GridPosition::new(dir.0, dir.1), team)-1) as usize] += 1;
-            output[(self.get_run_in_direction(start, GridPosition::new(-1*dir.0, -1*dir.1), team)-1) as usize] += 1;
+            let a = self.get_run_in_direction(start, GridPosition::new(dir.0, dir.1), team)-1;
+            let b = self.get_run_in_direction(start, GridPosition::new(-1*dir.0, -1*dir.1), team)-1;
+            if a >= 0 {
+                output[a as usize] += 1;
+            }
+            if b >= 0 {
+                output[b as usize] += 1;
+            }
         }
         output
     }
@@ -419,33 +425,28 @@ mod core_tests {
     use super::*;
     mod Board {
         use super::*;
-        /*use connect4::core::Board;
-        use connect4::core::GridPosition;
-        use connect4::core::MyColor;        
-        use connect4::core::BOARD_SIZE;
-        //use connect4::core::BOARD_SIZE;*/
+        use connect4::core::Board;
 
-        mod get_run_in_direction { 
-            use super::*;
-            use connect4::core::Board;
-
-            //Method to create a board state from a set of vectors, where 0 is empty and 1 or 2 team tokens
-            //Note that input is board[column][row], so if you want to add a team 1 token in column 4, row 0, then
-            //the board input should have board[4][0] = 1
-            fn create_test_board(board: Vec<Vec<i32>>) -> Board {
-                let mut output = Board::new(GridPosition{ x: 0, y:0 });
-                for i in 0..BOARD_SIZE.1 {
-                    if (i as usize) < board.len() {
-                        let col = board.get(i as usize).unwrap();
-                        for j in 0..BOARD_SIZE.0 {
-                            if (j as usize) < col.len() {
-                                output.insert(i, *col.get(j as usize).unwrap(), MyColor::White);
-                            }
+        //Method to create a board state from a set of vectors, where 0 is empty and 1 or 2 team tokens
+        //Note that input is board[column][row], so if you want to add a team 1 token in column 4, row 0, then
+        //the board input should have board[4][0] = 1
+        fn create_test_board(board: Vec<Vec<i32>>) -> Board {
+            let mut output = Board::new(GridPosition{ x: 0, y:0 });
+            for i in 0..BOARD_SIZE.1 {
+                if (i as usize) < board.len() {
+                    let col = board.get(i as usize).unwrap();
+                    for j in 0..BOARD_SIZE.0 {
+                        if (j as usize) < col.len() {
+                            output.insert(i, *col.get(j as usize).unwrap(), MyColor::White);
                         }
                     }
                 }
-                output
             }
+            output
+        }
+
+        mod get_run_in_direction { 
+            use super::*;
 
             #[test]
             fn should_find_contiguous_run() {
@@ -632,6 +633,23 @@ mod core_tests {
                 //Bottom-right to upper-left diagonal directions - should be 2 going up and 3 going down (since space in down dir, but blocked going up)
                 assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, 1), 1), 2);
                 assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, -1), 1), 3);
+            }
+        }
+
+        mod get_runs_from_point { 
+            use super::*;
+
+            #[test]
+            fn should_find_runs() {
+                let data = vec![vec![1,1,0,1,2,0,0],
+                                vec![1,2,2,1,2,2,0],
+                                vec![2,1,0,2,1,0,0],
+                                vec![2,1,1,1,0,0,0], //Target is in middle of this column
+                                vec![0,0,0,0,0,0,0],
+                                vec![1,1,0,1,2,1,0],
+                                vec![1,1,2,2,2,0,0]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_runs_from_point(GridPosition::new(3, 3), 1), [1,2,3,0]);
             }
         }
     }

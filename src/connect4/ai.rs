@@ -10,14 +10,14 @@ use connect4::core::BOARD_SIZE;
 use connect4::core::MyColor;
 use std::cmp::Ordering;
 
-struct MoveCheck {
+pub struct MoveCheck {
     team: i32,
     board: Board,
     runs: [i32;4]
 }
 
 impl MoveCheck {
-    fn init(board: Board, moveCol: i32, team: i32) -> Self {
+    fn new(board: Board, moveCol: i32, team: i32) -> Self {
         let mut newBoard = board.clone();
         let runs = newBoard.get_runs_from_point(GridPosition::new(moveCol, newBoard.get_column_height(moveCol as usize) as i32), team);
         newBoard.insert(moveCol, team, MyColor::White);
@@ -34,7 +34,7 @@ impl MoveCheck {
     }*/
 
     fn has_end_result(&self) -> bool {
-        self.runs[4] > 0
+        self.runs[3] > 0
     }
 }
 
@@ -69,13 +69,13 @@ impl PartialEq for MoveCheck {
 
 impl Eq for MoveCheck {}
 
-struct AI {
+pub struct AI {
     team: i32,
     difficulty: i32
 }
 
 impl AI {
-    fn init(team: i32, difficulty: i32) -> Self {
+    fn new(team: i32, difficulty: i32) -> Self {
         AI { team, difficulty }
     }
 
@@ -99,13 +99,15 @@ impl AI {
     fn find_win_probability(&self, board: Board, currMove: i32, lastMove: i32) -> f32 {
         //Check win for AI turn
         let mut moves = Vec::new();
+        let mut out = "".to_owned();
         for i in 0..BOARD_SIZE.0 {
             if !board.is_column_full(i as usize) {
                 let board = board.clone();
-                if currMove & 2 == 1 {
-                    let oppMove = MoveCheck::init(board, i, self.team%2 + 1);
+                if currMove % 2 == 1 {
+                    let oppMove = MoveCheck::new(board, i, self.team%2 + 1);
                     //If move would cause other team to win, return 0 as prob. Otherwise, call recursively on next move
                     if oppMove.has_end_result() {
+                        panic!("opp end: {} {}", currMove, i);
                         return 0.0;
                     } else if currMove < lastMove {
                         return self.find_win_probability(oppMove.board, currMove+1, lastMove)
@@ -113,11 +115,12 @@ impl AI {
                         moves.push(oppMove);
                     }
                 } else {
-                    let aiMove = MoveCheck::init(board, i, self.team);
+                    let aiMove = MoveCheck::new(board, i, self.team);
                     //If move would cause AI to win, return 1 as prob. Otherwise, call recursively on next move
                     if aiMove.has_end_result() {
                         return 1.0;
                     } else if currMove < lastMove {
+                        panic!("opp end: {} {}", currMove, i);
                         return self.find_win_probability(aiMove.board, currMove+1, lastMove);
                     } else {
                         moves.push(aiMove);
@@ -149,7 +152,58 @@ impl AI {
 }
 
 
+#[cfg(test)]
+mod ai_tests {
+    use super::*;
+    mod AI {
+        use super::*;
+        use connect4::core::Board;
+        use connect4::ai::AI;
 
-/*fn main() {
-    panic!("Connect 4 is not implemented yet!")
-}*/
+        //Method to create a board state from a set of vectors, where 0 is empty and 1 or 2 team tokens
+        //Note that input is board[column][row], so if you want to add a team 1 token in column 4, row 0, then
+        //the board input should have board[4][0] = 1
+        fn create_test_board(board: Vec<Vec<i32>>) -> Board {
+            let mut output = Board::new(GridPosition{ x: 0, y:0 });
+            for i in 0..BOARD_SIZE.1 {
+                if (i as usize) < board.len() {
+                    let col = board.get(i as usize).unwrap();
+                    for j in 0..BOARD_SIZE.0 {
+                        if (j as usize) < col.len() {
+                            output.insert(i, *col.get(j as usize).unwrap(), MyColor::White);
+                        }
+                    }
+                }
+            }
+            output
+        }
+
+        mod find_win_probability { 
+            use super::*;
+
+            #[test]
+            fn should_default_to_0_if_column_full() {
+                let data = vec![vec![1,1,1,1,1,1]];
+                let board = create_test_board(data);
+                let testAI = AI::new(1,1);
+                assert_eq!(testAI.find_win_probability(board.clone(), 1, 3), 0.0);
+                assert_eq!(testAI.find_win_probability(board.clone(), 2, 3), 0.0);
+            }
+
+            #[test]
+            fn should_return_win_or_loss_with_4_run() {
+                let data = vec![vec![1,1,0,1,2,0,0],
+                                vec![1,2,2,1,2,2,0],
+                                vec![2,2,2,2,1,0,0],
+                                vec![1,1,1,1,0,0,0], 
+                                vec![0,0,0,0,0,0,0],
+                                vec![1,1,0,1,2,1,0],
+                                vec![1,1,2,2,2,0,0]];
+                let board = create_test_board(data);
+                let testAI = AI::new(1,1);
+                assert_eq!(testAI.find_win_probability(board.clone(), 1, 3), 1.0);
+                assert_eq!(testAI.find_win_probability(board.clone(), 2, 3), 0.0);
+            }
+        }
+    }
+}
