@@ -24,17 +24,25 @@ impl MoveCheck {
         MoveCheck { team: team, board: newBoard, runs: runs }
     }
 
-    /*fn compare(&self, other: MoveCheck) -> i32 {
-        for i in (0..4).rev() {
-            if self.runs[i] != other.runs[i] {
-                return i*(self.runs[i]-other.runs[i]);
-            }
-        }
-        0
-    }*/
-
     fn has_end_result(&self) -> bool {
         self.runs[3] > 0
+    }
+
+
+    fn get_win_probability(&self, team: i32) -> f32 {
+        let mut prob = 0f32;
+        for i in 0..self.runs.len() {
+            //Formula is 1/2^(i-3) * runs[i], so each run[3] has a prob of 1 (since it corresponds to a run of 3),
+            //each run[2] has a prob of 0.5, etc. All of this is divided by 2 since runs duplicate in opposite directionss
+            prob += (2.0.powi(i-3)*self.runs[i])/2;
+        }
+        //If teams match, return probability (but don't go over prob of 1.0)
+        if team == self.team {
+            prob.min(1.0)
+        //If teams don't match, return 1-probability (but don't go below prob of 0.0)
+        } else {
+            (1-prob).max(0.0)
+        }
     }
 }
 
@@ -103,50 +111,27 @@ impl AI {
         for i in 0..BOARD_SIZE.0 {
             if !board.is_column_full(i as usize) {
                 let board = board.clone();
-                if currMove % 2 == 1 {
-                    let oppMove = MoveCheck::new(board, i, self.team%2 + 1);
-                    //If move would cause other team to win, return 0 as prob. Otherwise, call recursively on next move
-                    if oppMove.has_end_result() {
-                        panic!("opp end: {} {}", currMove, i);
-                        return 0.0;
-                    } else if currMove < lastMove {
-                        return self.find_win_probability(oppMove.board, currMove+1, lastMove)
-                    } else {
-                        moves.push(oppMove);
-                    }
+                //This will always make a MoveCheck where the "team" is self.team if currMove%2 == 0 and the opposite team if currMove%2 == 1
+                //Assumes only two teams, 1 and 2
+                let moveCheck = MoveCheck::new(board, i, (self.team+currMove+1)%2+1);
+                //If move produces end result, return an absolute probability of 1 (if current moveCheck is for team) or 0 (for opp)
+                if moveCheck.has_end_result() {
+                    return 1.0-(self.team-moveCheck.team)%2;
+                //If currMove is not last move, recurse on subsequent moves from the current moveCheck
+                } else if currMove < lastMove {
+                    moves.push(self.find_win_probability(moveCheck.board, currMove+1, lastMove));
+                //Base case - this is the last move, so just return current probability of win for this moveCheck relative to self.team
                 } else {
-                    let aiMove = MoveCheck::new(board, i, self.team);
-                    //If move would cause AI to win, return 1 as prob. Otherwise, call recursively on next move
-                    if aiMove.has_end_result() {
-                        return 1.0;
-                    } else if currMove < lastMove {
-                        panic!("opp end: {} {}", currMove, i);
-                        return self.find_win_probability(aiMove.board, currMove+1, lastMove);
-                    } else {
-                        moves.push(aiMove);
-                    }
+                    moves.push(moveCheck.get_win_probability(self.team));
                 }
             }
         }
         //Edge case - no moves to make, return 0 probability (can't win)
         if moves.len() == 0 {
             0f32
-        //Base case - currMove >= lastMove, so function falls through to here to make guestimate
+        //Otherwise, return average of all possibilities
         } else {
-            moves.sort();
-            //Opp turn 
-            if currMove & 2 == 1 {
-                let worstCaseRuns = moves.get(moves.len()-1).unwrap().runs;
-                //Return 1-weighted prob of enemy getting winning move in future (divided by two because duplicates run in opposite directions
-                //likely created). Also doesn't go below probability of 0 for consistency (why .max(0) is added)
-                (1.0-(0.5*(worstCaseRuns[3] as f32)+0.25*(worstCaseRuns[2] as f32)+0.125*(worstCaseRuns[1] as f32))/2.0).max(0.0)
-            //AI turn
-            } else {
-                let bestCaseRuns = moves.get(0).unwrap().runs;
-                //Return weighted prob of enemy getting winning move in future (divided by two because duplicates run in opposite directions
-                //likely created). Also doesn't go above probability of 1 for consistency why .min(1) is added)
-                (0.5*(bestCaseRuns[3] as f32)+0.25*(bestCaseRuns[2] as f32)+0.125*(bestCaseRuns[1] as f32)/2.0).min(1.0)
-            }
+            moves.iter().sum()/(moves.len() as f32)
         }
     }
 }
