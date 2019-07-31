@@ -187,7 +187,7 @@ impl Column {
     }
 
     pub fn is_full(&self) -> bool {
-        self.height >= self.cells.len()
+        self.height >= BOARD_SIZE.0 as usize
     }
 
     /// Inserts a team's disc of a particular color into a cell
@@ -437,7 +437,10 @@ mod core_tests {
                     let col = board.get(i as usize).unwrap();
                     for j in 0..BOARD_SIZE.0 {
                         if (j as usize) < col.len() {
-                            output.insert(i, *col.get(j as usize).unwrap(), MyColor::White);
+                            let val = *col.get(j as usize).unwrap();
+                            if val > 0 {
+                                output.insert(i, val, MyColor::White);
+                            }
                         }
                     }
                 }
@@ -613,13 +616,13 @@ mod core_tests {
             #[test]
             fn should_work_in_all_directions() {
                 //Note - the runs may not match in opposite directions!
-                let data = vec![vec![1,1,0,1,2,0,0],
-                                vec![1,2,2,1,2,2,0],
-                                vec![2,1,0,2,1,0,0],
-                                vec![2,1,1,1,0,0,0], //Target is in middle of this column
-                                vec![0,0,0,0,0,0,0],
-                                vec![1,1,0,1,2,1,0],
-                                vec![1,1,2,2,2,0,0]];
+                let data = vec![vec![1,1,0,1,2,0],
+                                vec![1,2,2,1,2,2],
+                                vec![2,1,1,2,1,0],
+                                vec![2,1,1,1,0,0], //Target is in middle of this column
+                                vec![0,0,0,0,0,0],
+                                vec![1,1,2,1,2,1],
+                                vec![1,1,2,2,2,0]];
                 let board = create_test_board(data);
                 //Vertical directions - should be 3 in both cases
                 assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(0, 1), 1), 3);
@@ -627,9 +630,9 @@ mod core_tests {
                 //Horizontal directions - should be 0 in both cases since two 2s block potential run of 4
                 assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, 0), 1), 0);
                 assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, 0), 1), 0);
-                //Bottom-left to upper-right diagonal directions - should be 1 going down and 2 going up (since space then token in upper-right dir)
-                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, 1), 1), 2);
-                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, -1), 1), 1);
+                //Bottom-left to upper-right diagonal directions - should be 2 going down and 3 going up (since space then token in upper-right dir)
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, 1), 1), 3);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, -1), 1), 2);
                 //Bottom-right to upper-left diagonal directions - should be 2 going up and 3 going down (since space in down dir, but blocked going up)
                 assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, 1), 1), 2);
                 assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, -1), 1), 3);
@@ -641,15 +644,15 @@ mod core_tests {
 
             #[test]
             fn should_find_runs() {
-                let data = vec![vec![1,1,0,1,2,0,0],
-                                vec![1,2,2,1,2,2,0],
-                                vec![2,1,0,2,1,0,0],
-                                vec![2,1,1,1,0,0,0], //Target is in middle of this column
-                                vec![0,0,0,0,0,0,0],
-                                vec![1,1,0,1,2,1,0],
-                                vec![1,1,2,2,2,0,0]];
+                let data = vec![vec![1,1,0,1,2,0],
+                                vec![1,2,2,1,2,2],
+                                vec![2,1,1,2,1,0],
+                                vec![2,1,1,1,0,0], //Target is in middle of this column
+                                vec![0,0,0,0,0,0],
+                                vec![1,1,2,1,2,1],
+                                vec![1,1,2,2,2,0]];
                 let board = create_test_board(data);
-                assert_eq!(board.get_runs_from_point(GridPosition::new(3, 3), 1), [1,2,3,0]);
+                assert_eq!(board.get_runs_from_point(GridPosition::new(3, 3), 1), [0,2,4,0]);
             }
         }
     }
