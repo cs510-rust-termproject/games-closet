@@ -39,7 +39,7 @@ const TURN_INDICATOR_FONT_SIZE: i32 = 48;
 
 const COLUMN_SELECTION_INDICATOR_POS_OFFSET: (i32, i32) = (10, 10 + TURN_INDICATOR_POS_OFFSET.1 + TURN_INDICATOR_BOX_SIZE_OFFSET.1 + TURN_INDICATOR_FONT_SIZE);
 
-const BOARD_POS_OFFSET: (i32, i32) = (10, 10 + COLUMN_SELECTION_INDICATOR_POS_OFFSET.1);
+const BOARD_POS_OFFSET: (i32, i32) = (10, 10 + COLUMN_SELECTION_INDICATOR_POS_OFFSET.1 + BOARD_CELL_SIZE.1);
 
 
 /// Constant definition for the screen size of the game window
@@ -219,6 +219,10 @@ impl Column {
             cell.fill(0, MyColor::White);
         }
     }
+}
+
+struct ColumnSelector {
+    
 }
 
 struct Board {
