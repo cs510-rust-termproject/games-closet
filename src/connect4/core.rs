@@ -47,9 +47,9 @@ pub enum MyColor {
 
 /// Struct determines position on the board
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-struct GridPosition {
-    x: i32,
-    y: i32,
+pub struct GridPosition {
+    pub x: i32,
+    pub y: i32,
 }
 
 impl GridPosition {
@@ -91,6 +91,7 @@ impl From<GridPosition> for Point2<f32> {
 */
 
 /// A single cell of the board
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Cell {
     position: GridPosition,
     team: i32,
@@ -147,9 +148,15 @@ impl Cell {
         );
         mb
     }
+
+    fn fill(&mut self, team: i32, color: MyColor) {
+        self.team = team;
+        self.color = color;
+    }
 }
 
 //Abstraction of a column of cells for connect 4 board
+#[derive(Clone, PartialEq, Eq, Debug)]
 struct Column {
     position: GridPosition,
     cells: Vec<Cell>,
@@ -180,13 +187,27 @@ impl Column {
     }
 
     pub fn is_full(&self) -> bool {
-        self.height >= self.cells.len()
+        self.height >= BOARD_SIZE.0 as usize
+    }
+
+    /// Inserts a team's disc of a particular color into a cell
+    /// Returns true if disc successfully inserted
+    /// Returns false if column is full
+    pub fn insert(&mut self,team: i32, color: MyColor) -> bool {
+        if self.is_full() {
+            false
+        } else {
+            self.cells[self.height].fill(team, color);
+            self.height += 1;
+            true
+        }
     }
 
 
 }
 
-struct Board {
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Board {
     position: GridPosition,
     columns: Vec<Column>,
 }
@@ -230,7 +251,7 @@ impl Board {
     }
 
     pub fn on_board(&self, pos: GridPosition) -> bool {
-        pos.x >= 0 && pos.x < BOARD_SIZE.0 && pos.y >= 0 && pos.y < BOARD_SIZE.1
+        pos.x >= 0 && pos.x < BOARD_SIZE.1 && pos.y >= 0 && pos.y < BOARD_SIZE.0
     }
 
     pub fn get_column_height(&self, col: usize) -> usize {
@@ -257,64 +278,103 @@ impl Board {
     fn get_run_in_direction(&self, start: GridPosition, dir: GridPosition, team: i32) -> i32 {
         let mut dir_active = true;
         let mut rev_active = true;
-        let mut space_used = false;
+        let mut dir_spaces_used = 0;
+        let mut rev_space_used = false;
         let mut run_len = 1i32; //Start with dropped token
+        let mut potential_len = 1; //Assume potential length starts at 1 for dropped token
         let mut i = 1; //Start one beyond dropped token
         while run_len <= 4 && (dir_active || rev_active) {
             dir_active = dir_active && self.on_board(GridPosition::new(start.x+i*dir.x, start.y+i*dir.y));
             rev_active = rev_active && self.on_board(GridPosition::new(start.x-i*dir.x, start.y-i*dir.y));
             //Do reverse case first for edge case of AASA_A is treated as a run of 4 and not 3 with a space
             if rev_active {
-                if self.get_cell_team(GridPosition::new(start.x-i*dir.x, start.y-i*dir.y)) == team {
-                    run_len += 1;
-                } else {
+                let val = self.get_cell_team(GridPosition::new(start.x-i*dir.x, start.y-i*dir.y));
+                //If token not for team in cell, end of search in rev direction
+                if val != 0 && val != team {
                     rev_active = false;
+                //If no spaces used, either add to run_len and/or potential_len depending on if cell is empty or matches team
+                } else if !rev_space_used {
+                    if val == team {
+                        run_len += 1;
+                    } else {
+                        rev_space_used = true;
+                    }
+                    potential_len += 1;
+                //If space in rev direction found, just add to potential run len to track that
+                } else {
+                    potential_len += 1;
                 }
             }
             if dir_active {
                 let val = self.get_cell_team(GridPosition::new(start.x+i*dir.x, start.y+i*dir.y));
-                if val == team {
-                    run_len += 1;
-                    //Check for contiguous run of 4 before space, return immediately to prevent odd cases with spaces
-                    if !space_used && run_len >= 4 {
-                        return 4i32;
-                    }
-                } else if val == 0 && !space_used {
-                    space_used = true;
-                } else {
+                //If token not for team in cell, end of search in target direction
+                if val != 0 && val != team {
                     dir_active = false;
+                //If 0 or 1 spaces in target direction used, either add to run_len and/or potential_run depending on if cell is empty or matches team
+                } else if dir_spaces_used <=  1 {
+                    //If you have a contiguous run of 4 with no spaces, immediately return because a winning run has been found!
+                    if run_len >= 4 && dir_spaces_used == 0 {
+                        return 4i32;
+                    } else if val == team {
+                        run_len += 1;   
+                    } else {
+                        dir_spaces_used +=1;
+                    }
+                    potential_len += 1;
+                //If more than one space in target direction used, only add to potential length for non-enemy cells
+                } else {
+                    potential_len += 1;
                 }
             }
             i += 1;
         }
-        if space_used {
-            std::cmp::min(run_len, 3)
-        //Todo: Handle case where "run" is blocked on both ends
+        //If the potential of the run is not 4 or more, return 0 because it is not a viable run
+        if potential_len < 4 {
+            return 0i32;
+        //Otherwise, return the minimum of the run_len and 4 (if no spaces) or 3 (if one space used)
         } else {
-            std::cmp::min(run_len, 4)
+            if dir_spaces_used > 0 {
+                run_len.min(3)
+            } else {
+                run_len.min(4)
+            }
         }
     }
 
     //Method to return an array of runs from a start location for a given team, where array[i] returns the number of runs
     //of length i-1. Accounts for all eight directions, but may have false duplicates (e.g. a run BAAAB will return have two
     //runs of length 3 for team A even though technically its the same run)
-    fn get_runs_from_point(&self, start: GridPosition, team: i32) -> [i32;4] {
+    pub fn get_runs_from_point(&self, start: GridPosition, team: i32) -> [i32;4] {
         let mut output = [0i32;4];
         let directions = vec![(1, 0), (1, 1), (0, 1), (-1, 1)];
         for dir in directions {
-            output[(self.get_run_in_direction(start, GridPosition::new(dir.0, dir.1), team)-1) as usize] += 1;
-            output[(self.get_run_in_direction(start, GridPosition::new(-1*dir.0, -1*dir.1), team)-1) as usize] += 1;
+            let a = self.get_run_in_direction(start, GridPosition::new(dir.0, dir.1), team)-1;
+            let b = self.get_run_in_direction(start, GridPosition::new(-1*dir.0, -1*dir.1), team)-1;
+            if a >= 0 {
+                output[a as usize] += 1;
+            }
+            if b >= 0 {
+                output[b as usize] += 1;
+            }
         }
         output
     }
+
+    /// Inserts a team's disc of a particular color into a cell
+    /// Returns true if disc successfully inserted
+    /// Returns false if column is full
+    pub fn insert(&mut self, position: i32, team: i32, color: MyColor) -> bool {
+        self.columns[position as usize].insert(team, color)
+    }
+
 }
 
 
-struct GameState {
+pub struct GameState {
     frames: usize,
     gameLoaded: GameLoaded,
     /// connect4 board
-    board: Board,
+    pub board: Board,
 }
 
 //Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
@@ -357,4 +417,243 @@ pub fn main() -> GameResult {
 
     let state = &mut GameState::new(ctx)?;
     event::run(ctx, events_loop, state)
+}
+
+
+#[cfg(test)]
+mod core_tests {
+    use super::*;
+    mod Board {
+        use super::*;
+        use connect4::core::Board;
+
+        //Method to create a board state from a set of vectors, where 0 is empty and 1 or 2 team tokens
+        //Note that input is board[column][row], so if you want to add a team 1 token in column 4, row 0, then
+        //the board input should have board[4][0] = 1
+        fn create_test_board(board: Vec<Vec<i32>>) -> Board {
+            let mut output = Board::new(GridPosition{ x: 0, y:0 });
+            for i in 0..BOARD_SIZE.1 {
+                if (i as usize) < board.len() {
+                    let col = board.get(i as usize).unwrap();
+                    for j in 0..BOARD_SIZE.0 {
+                        if (j as usize) < col.len() {
+                            let val = *col.get(j as usize).unwrap();
+                            if val > 0 {
+                                output.insert(i, val, MyColor::White);
+                            }
+                        }
+                    }
+                }
+            }
+            output
+        }
+
+        mod get_run_in_direction { 
+            use super::*;
+
+            #[test]
+            fn should_find_contiguous_run() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 3);
+            }
+
+            #[test]
+            fn should_find_not_be_more_than_4() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 4);
+            }
+
+            #[test]
+            fn should_find_run_with_space() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 3);
+            }
+
+            #[test]
+            fn should_find_not_be_more_than_3_with_space() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 3);
+            }
+
+            #[test]
+            fn should_not_count_two_spaces() {
+                let data = vec![vec![0,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 1);
+            }
+
+            #[test]
+            fn should_not_count_past_space_in_rev_direction() {
+                let data = vec![vec![1,],
+                                vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![0,],
+                                vec![0,]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 2);
+            }
+
+            #[test]
+            fn should_return_run_of_4_prior_to_space() {
+                //Should return 4
+                let run1 = vec![vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,]];
+                let board = create_test_board(run1);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 4);
+                //This should return 4 - handled by rev direction case
+                let run2 = vec![vec![0,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,]];
+                let board = create_test_board(run2);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(2, 0), GridPosition::new(1, 0), 1), 4);
+                //This should not return 4 - handled by rev direction case
+                let run3 = vec![vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![0,],
+                                vec![1,],
+                                vec![0,]];
+                let board = create_test_board(run3);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 3);
+            }
+
+            #[test]
+            fn returns_0_if_run_of_4_impossible() {
+                //Runs 1-3 should return 0, Runs 4-5 should pass due to potential in either direction
+                let run1 = vec![vec![0,],
+                                vec![2,],
+                                vec![1,],
+                                vec![1,],
+                                vec![1,],
+                                vec![2,],
+                                vec![1,]];
+                let mut board = create_test_board(run1);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 0);
+                let run2 = vec![vec![2,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![2,],
+                                vec![0,],
+                                vec![1,]];
+                board = create_test_board(run2);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 0);
+                let run3 = vec![vec![0,],
+                                vec![1,],
+                                vec![1,], //Checking here
+                                vec![2,],
+                                vec![0,],
+                                vec![0,],
+                                vec![0,]];
+                board = create_test_board(run3);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(2, 0), GridPosition::new(1, 0), 1), 0);
+                let run4 = vec![vec![1,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![2,],
+                                vec![0,],
+                                vec![1,]];
+                board = create_test_board(run4);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 1);
+                let run5 = vec![vec![2,],
+                                vec![0,],
+                                vec![0,],
+                                vec![1,],
+                                vec![0,],
+                                vec![2,],
+                                vec![1,]];
+                board = create_test_board(run5);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 0), GridPosition::new(1, 0), 1), 1);
+            }
+
+            #[test]
+            fn should_work_in_all_directions() {
+                //Note - the runs may not match in opposite directions!
+                let data = vec![vec![1,1,0,1,2,0],
+                                vec![1,2,2,1,2,2],
+                                vec![2,1,1,2,1,0],
+                                vec![2,1,1,1,0,0], //Target is in middle of this column
+                                vec![0,0,0,0,0,0],
+                                vec![1,1,2,1,2,1],
+                                vec![1,1,2,2,2,0]];
+                let board = create_test_board(data);
+                //Vertical directions - should be 3 in both cases
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(0, 1), 1), 3);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(0, -1), 1), 3);
+                //Horizontal directions - should be 0 in both cases since two 2s block potential run of 4
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, 0), 1), 0);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, 0), 1), 0);
+                //Bottom-left to upper-right diagonal directions - should be 2 going down and 3 going up (since space then token in upper-right dir)
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, 1), 1), 3);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, -1), 1), 2);
+                //Bottom-right to upper-left diagonal directions - should be 2 going up and 3 going down (since space in down dir, but blocked going up)
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(-1, 1), 1), 2);
+                assert_eq!(board.get_run_in_direction(GridPosition::new(3, 3), GridPosition::new(1, -1), 1), 3);
+            }
+        }
+
+        mod get_runs_from_point { 
+            use super::*;
+
+            #[test]
+            fn should_find_runs() {
+                let data = vec![vec![1,1,0,1,2,0],
+                                vec![1,2,2,1,2,2],
+                                vec![2,1,1,2,1,0],
+                                vec![2,1,1,1,0,0], //Target is in middle of this column
+                                vec![0,0,0,0,0,0],
+                                vec![1,1,2,1,2,1],
+                                vec![1,1,2,2,2,0]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_runs_from_point(GridPosition::new(3, 3), 1), [0,2,4,0]);
+            }
+        }
+    }
 }
