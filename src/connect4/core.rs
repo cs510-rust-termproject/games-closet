@@ -215,29 +215,12 @@ impl Column {
         }
     }
 
-    /// Inserts a team's disc of a particular color into a cell
-    /// Returns true if disc successfully inserted
-    /// Returns false if column is full
-    pub fn insert(&mut self,team: i32, color: MyColor) -> bool {
-        if self.is_full() {
-            false
-        } else {
-            self.cells[self.height].fill(team, color);
-            self.height += 1;
-            true
-        }
-    }
-
     pub fn reset(&mut self) {
         self.height = 0;
         for cell in &mut self.cells {
             cell.fill(0, MyColor::White);
         }
     }
-}
-
-struct ColumnSelector {
-    
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -408,7 +391,7 @@ impl Board {
     }
 }
 
-struct TurnIndicator {
+pub struct TurnIndicator {
     team: i32,
 }
 
