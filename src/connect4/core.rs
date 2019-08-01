@@ -334,9 +334,9 @@ impl Board {
         //Otherwise, return the minimum of the run_len and 4 (if no spaces) or 3 (if one space used)
         } else {
             if dir_spaces_used > 0 {
-                std::cmp::min(run_len, 3)
+                run_len.min(3)
             } else {
-                std::cmp::min(run_len, 4)
+                run_len.min(4)
             }
         }
     }

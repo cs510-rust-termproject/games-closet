@@ -3,11 +3,11 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
-use connect4::core::GridPosition;
-use connect4::core::Board;
+use connect4::core::{GridPosition, Board, GameState, BOARD_SIZE, MyColor};
+/*use connect4::core::Board;
 use connect4::core::GameState;
 use connect4::core::BOARD_SIZE;
-use connect4::core::MyColor;
+use connect4::core::MyColor;*/
 use std::cmp::Ordering;
 
 pub struct MoveCheck {
@@ -107,10 +107,10 @@ impl AI {
     fn find_win_probability(&self, board: Board, currMove: i32, lastMove: i32) -> f32 {
         //Check win for AI turn
         let mut moves = Vec::new();
-        let mut out = "".to_owned();
+        //let mut out = "".to_owned();
         for i in 0..BOARD_SIZE.1 {
             if !board.is_column_full(i as usize) {
-                out += "non-full column\n";
+                //out += "non-full column\n";
                 let board = board.clone();
                 //This will always make a MoveCheck where the "team" is self.team if currMove%2 == 0 and the opposite team if currMove%2 == 1
                 //Assumes only two teams, 1 and 2
@@ -121,10 +121,10 @@ impl AI {
                 //If currMove is not last move, recurse on subsequent moves from the current moveCheck
                 } else if currMove < lastMove {
                     moves.push(self.find_win_probability(moveCheck.board, currMove+1, lastMove));
-                    out += "pushed move\n";
+                    //out += "pushed move\n";
                 //Base case - this is the last move, so just return current probability of win for this moveCheck relative to self.team
                 } else {
-                    out += "finised move\n";
+                    //out += "finised move\n";
                     moves.push(moveCheck.get_win_probability(self.team));
                 }
             }
