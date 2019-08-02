@@ -57,6 +57,17 @@ pub enum MyColor {
     Red,
 }
 
+impl MyColor {
+    pub fn get_draw_color(&self) -> ggez::graphics::Color {
+        let circ_color = match self {
+            MyColor::White => graphics::WHITE,
+            MyColor::Blue => graphics::Color::from_rgba(0,0,255,255),
+            MyColor::Red => graphics::Color::from_rgba(255,0,0,255),
+        };
+        circ_color
+    }
+}
+
 //use MyColor::*;
 
 /// Struct determines position on the board
@@ -123,11 +134,7 @@ impl Cell {
 
     //Using example from 03_drawing.rs
     fn draw <'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
-        let circ_color = match self.color {
-            White => graphics::WHITE,
-            Blue => graphics::Color::from_rgba(0,0,255,255),
-            Red => graphics::Color::from_rgba(255,0,0,255),
-        };
+        let circ_color = self.color.get_draw_color();
         //println!("Building mesh\n");
         
         mb.rectangle(
@@ -206,7 +213,7 @@ impl Column {
 
     //Method to determine if a location (presumed to be the mouse) is inside the column or one cell above (for drop)
     pub fn is_mouse_over(&self, loc: Point2<f32>) -> bool {
-        graphics::Rect::new(self.position.x as f32, (self.position.y-BOARD_CELL_SIZE.1) as f32, BOARD_CELL_SIZE.0 as f32, 8.0*BOARD_CELL_SIZE.1 as f32).contains(loc)
+        graphics::Rect::new(self.position.x as f32, (self.position.y-(BOARD_CELL_SIZE.1*4/3)) as f32, BOARD_CELL_SIZE.0 as f32, 8.0*BOARD_CELL_SIZE.1 as f32).contains(loc)
     }
 
     /// Inserts a team's disc of a particular color into a cell
@@ -216,7 +223,8 @@ impl Column {
         if self.is_full() {
             false
         } else {
-            self.cells[self.height].fill(team, color);
+            //Counterintuitive, but cells drawn down in grid, so "bottom" of column starts at 5, works down to 0 when full
+            self.cells[5-self.height].fill(team, color);
             self.height += 1;
             true
         }
@@ -495,6 +503,19 @@ impl event::EventHandler for GameState {
         //Draw screen background
         graphics::clear(ctx, graphics::BLACK);
         let mut mb = graphics::MeshBuilder::new();
+        //Draw disc over current column
+        if self.highlighted_column >= 0 {
+            mb.circle(
+                graphics::DrawMode::fill(),
+                Point2 {
+                    x: (self.board.columns[self.highlighted_column as usize].position.x + (BOARD_CELL_SIZE.0 / 2)) as f32,
+                    y: (self.board.position.y - (BOARD_CELL_SIZE.1 /2)) as f32
+                },
+                BOARD_DISC_RADIUS as f32,
+                2.0,
+                self.team_colors[self.turnIndicator.team as usize].get_draw_color()
+            );
+        }
         // Draw Board
         let mesh = self.board.draw(&mut mb).build(ctx)?;
         graphics::draw(ctx, &mesh, (Point2 {x: 0.0, y: 0.0},))?;
@@ -528,10 +549,12 @@ impl event::EventHandler for GameState {
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
         let was_highlighted = self.highlighted_column;
         self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
-        if was_highlighted == self.highlighted_column {
+        if was_highlighted == self.highlighted_column && self.highlighted_column >= 0 {
             self.mouse_disabled = true;
             if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
                 println!("Team {} drops token in col {}", self.turnIndicator.team, self.highlighted_column);
+                let val =  self.board.columns[self.highlighted_column as usize].cells[self.board.get_column_height(self.highlighted_column as usize)-1];
+                println!("Cell: {} {:?}", val.team, val.color);
                 self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
             }
             self.mouse_disabled = false;
@@ -546,6 +569,7 @@ pub fn main() -> GameResult {
         .build()?;
 
     let state = &mut GameState::new(ctx)?;
+    state.turnIndicator.change_team(1); //Start with player 1
     event::run(ctx, events_loop, state)
 }
 
