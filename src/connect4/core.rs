@@ -6,6 +6,8 @@ extern crate ggez;
 
 use ggez::{event, graphics, Context, GameResult};
 use ggez::mint::Point2;
+use ggez::input::mouse;
+use ggez::input::mouse::MouseButton;
 
 /// Enum representing which game is loaded
 enum GameLoaded {
@@ -202,6 +204,11 @@ impl Column {
         self.height >= BOARD_SIZE.0 as usize
     }
 
+    //Method to determine if a location (presumed to be the mouse) is inside the column or one cell above (for drop)
+    pub fn is_mouse_over(&self, loc: Point2<f32>) -> bool {
+        graphics::Rect::new(self.position.x as f32, (self.position.y-BOARD_CELL_SIZE.1) as f32, BOARD_CELL_SIZE.0 as f32, 8.0*BOARD_CELL_SIZE.1 as f32).contains(loc)
+    }
+
     /// Inserts a team's disc of a particular color into a cell
     /// Returns true if disc successfully inserted
     /// Returns false if column is full
@@ -265,6 +272,16 @@ impl Board {
             column.draw(mb);
         }
         mb
+    }
+
+    //Helper method to get the index of the column that is under the mouse (loc), or -1 if no column is highlighted
+    pub fn get_highlighted_column(&self, loc: Point2<f32>) -> i32 {
+        for i in 0..self.columns.len() {
+            if self.columns[i].is_mouse_over(loc) {
+                return i as i32;
+            }
+        }
+        -1
     }
 
     pub fn on_board(&self, pos: GridPosition) -> bool {
@@ -445,7 +462,11 @@ pub struct GameState {
     gameLoaded: GameLoaded,
     /// connect4 board
     pub board: Board,
+    team_colors: Vec<MyColor>,
     pub turnIndicator: TurnIndicator,
+    pub highlighted_column: i32,
+    mouse_disabled: bool
+
 }
 
 //Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
@@ -456,7 +477,10 @@ impl GameState {
             frames: 0, 
             gameLoaded: GameLoaded::NONE,
             board: Board::new(board_pos.into()),
+            team_colors: vec![MyColor::White, MyColor::Red, MyColor::Blue],
             turnIndicator: TurnIndicator::new(),
+            highlighted_column: -1,
+            mouse_disabled: false
         };
         Ok(s)
     }
@@ -480,6 +504,38 @@ impl event::EventHandler for GameState {
         graphics::present(ctx)?;
         ggez::timer::yield_now();
         Ok(())
+    }
+
+    fn mouse_motion_event(&mut self, _ctx: &mut Context, _x: f32, _y: f32, _dx: f32, _dy: f32) {
+        if !self.mouse_disabled {
+            let was_highlighted = self.highlighted_column;
+            self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
+            //Log ONLY switches between columns (otherwise lot of logs to console)
+            if was_highlighted != self.highlighted_column {
+                println!("Mouse moved to col {}", self.highlighted_column);
+            }
+        }
+        
+    }
+
+    fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
+        if !self.mouse_disabled {
+            self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
+        }
+    }
+
+    //Todo: If mouse_motion_event is enabled, this will always drop the token (i.e. not click away to undo move). Undetermined if this is desired or not
+    fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
+        let was_highlighted = self.highlighted_column;
+        self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
+        if was_highlighted == self.highlighted_column {
+            self.mouse_disabled = true;
+            if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
+                println!("Team {} drops token in col {}", self.turnIndicator.team, self.highlighted_column);
+                self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
+            }
+            self.mouse_disabled = false;
+        } 
     }
 }
 
