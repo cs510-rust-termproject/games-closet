@@ -46,13 +46,8 @@ const BOARD_POS_OFFSET: (i32, i32) = (10, 10 + COLUMN_SELECTION_INDICATOR_POS_OF
 
 /// Constant definition for the screen size of the game window
 const SCREEN_SIZE: (f32, f32) = (
-<<<<<<< HEAD
     BOARD_TOTAL_SIZE.0 + (BOARD_POS_OFFSET.0 as f32),
     BOARD_TOTAL_SIZE.1 + (BOARD_POS_OFFSET.1 as f32),
-=======
-    BOARD_TOTAL_SIZE.0 + 32 as f32,
-    BOARD_TOTAL_SIZE.1 + (BOARD_POS_OFFSET.1 - 10 + 32) as f32,
->>>>>>> connect4
 );
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
