@@ -46,8 +46,8 @@ const BOARD_POS_OFFSET: (i32, i32) = (10, 10 + COLUMN_SELECTION_INDICATOR_POS_OF
 
 /// Constant definition for the screen size of the game window
 const SCREEN_SIZE: (f32, f32) = (
-    BOARD_TOTAL_SIZE.0 + 32 as f32,
-    BOARD_TOTAL_SIZE.1 + (TURN_INDICATOR_BOX_SIZE_OFFSET.1 + TURN_INDICATOR_FONT_SIZE + 32) as f32,
+    BOARD_TOTAL_SIZE.0 + (BOARD_POS_OFFSET.0 as f32),
+    BOARD_TOTAL_SIZE.1 + (BOARD_POS_OFFSET.1 as f32),
 );
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -553,8 +553,6 @@ impl event::EventHandler for GameState {
             self.mouse_disabled = true;
             if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
                 println!("Team {} drops token in col {}", self.turnIndicator.team, self.highlighted_column);
-                let val =  self.board.columns[self.highlighted_column as usize].cells[self.board.get_column_height(self.highlighted_column as usize)-1];
-                println!("Cell: {} {:?}", val.team, val.color);
                 self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
             }
             self.mouse_disabled = false;
