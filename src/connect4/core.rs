@@ -6,6 +6,8 @@ extern crate ggez;
 
 use ggez::{event, graphics, Context, GameResult};
 use ggez::mint::Point2;
+use ggez::input::mouse;
+use ggez::input::mouse::MouseButton;
 
 /// Enum representing which game is loaded
 enum GameLoaded {
@@ -44,8 +46,8 @@ const BOARD_POS_OFFSET: (i32, i32) = (10, 10 + COLUMN_SELECTION_INDICATOR_POS_OF
 
 /// Constant definition for the screen size of the game window
 const SCREEN_SIZE: (f32, f32) = (
-    BOARD_TOTAL_SIZE.0 + 32 as f32,
-    BOARD_TOTAL_SIZE.1 + (BOARD_POS_OFFSET.1 - 10 + 32) as f32,
+    BOARD_TOTAL_SIZE.0 + (BOARD_POS_OFFSET.0 as f32),
+    BOARD_TOTAL_SIZE.1 + (BOARD_POS_OFFSET.1 as f32),
 );
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -53,6 +55,17 @@ pub enum MyColor {
     White,
     Blue,
     Red,
+}
+
+impl MyColor {
+    pub fn get_draw_color(&self) -> ggez::graphics::Color {
+        let circ_color = match self {
+            MyColor::White => graphics::WHITE,
+            MyColor::Blue => graphics::Color::from_rgba(0,0,255,255),
+            MyColor::Red => graphics::Color::from_rgba(255,0,0,255),
+        };
+        circ_color
+    }
 }
 
 //use MyColor::*;
@@ -121,11 +134,7 @@ impl Cell {
 
     //Using example from 03_drawing.rs
     fn draw <'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
-        let circ_color = match self.color {
-            White => graphics::WHITE,
-            Blue => graphics::Color::from_rgba(0,0,255,255),
-            Red => graphics::Color::from_rgba(255,0,0,255),
-        };
+        let circ_color = self.color.get_draw_color();
         //println!("Building mesh\n");
         
         mb.rectangle(
@@ -202,6 +211,11 @@ impl Column {
         self.height >= BOARD_SIZE.0 as usize
     }
 
+    //Method to determine if a location (presumed to be the mouse) is inside the column or one cell above (for drop)
+    pub fn is_mouse_over(&self, loc: Point2<f32>) -> bool {
+        graphics::Rect::new(self.position.x as f32, (self.position.y-(BOARD_CELL_SIZE.1*4/3)) as f32, BOARD_CELL_SIZE.0 as f32, 8.0*BOARD_CELL_SIZE.1 as f32).contains(loc)
+    }
+
     /// Inserts a team's disc of a particular color into a cell
     /// Returns true if disc successfully inserted
     /// Returns false if column is full
@@ -209,7 +223,8 @@ impl Column {
         if self.is_full() {
             false
         } else {
-            self.cells[self.height].fill(team, color);
+            //Counterintuitive, but cells drawn down in grid, so "bottom" of column starts at 5, works down to 0 when full
+            self.cells[5-self.height].fill(team, color);
             self.height += 1;
             true
         }
@@ -265,6 +280,16 @@ impl Board {
             column.draw(mb);
         }
         mb
+    }
+
+    //Helper method to get the index of the column that is under the mouse (loc), or -1 if no column is highlighted
+    pub fn get_highlighted_column(&self, loc: Point2<f32>) -> i32 {
+        for i in 0..self.columns.len() {
+            if self.columns[i].is_mouse_over(loc) {
+                return i as i32;
+            }
+        }
+        -1
     }
 
     pub fn on_board(&self, pos: GridPosition) -> bool {
@@ -445,7 +470,11 @@ pub struct GameState {
     gameLoaded: GameLoaded,
     /// connect4 board
     pub board: Board,
+    team_colors: Vec<MyColor>,
     pub turnIndicator: TurnIndicator,
+    pub highlighted_column: i32,
+    mouse_disabled: bool
+
 }
 
 //Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
@@ -456,7 +485,10 @@ impl GameState {
             frames: 0, 
             gameLoaded: GameLoaded::NONE,
             board: Board::new(board_pos.into()),
+            team_colors: vec![MyColor::White, MyColor::Red, MyColor::Blue],
             turnIndicator: TurnIndicator::new(),
+            highlighted_column: -1,
+            mouse_disabled: false
         };
         Ok(s)
     }
@@ -471,6 +503,19 @@ impl event::EventHandler for GameState {
         //Draw screen background
         graphics::clear(ctx, graphics::BLACK);
         let mut mb = graphics::MeshBuilder::new();
+        //Draw disc over current column
+        if self.highlighted_column >= 0 {
+            mb.circle(
+                graphics::DrawMode::fill(),
+                Point2 {
+                    x: (self.board.columns[self.highlighted_column as usize].position.x + (BOARD_CELL_SIZE.0 / 2)) as f32,
+                    y: (self.board.position.y - (BOARD_CELL_SIZE.1 /2)) as f32
+                },
+                BOARD_DISC_RADIUS as f32,
+                2.0,
+                self.team_colors[self.turnIndicator.team as usize].get_draw_color()
+            );
+        }
         // Draw Board
         let mesh = self.board.draw(&mut mb).build(ctx)?;
         graphics::draw(ctx, &mesh, (Point2 {x: 0.0, y: 0.0},))?;
@@ -481,6 +526,38 @@ impl event::EventHandler for GameState {
         ggez::timer::yield_now();
         Ok(())
     }
+
+    fn mouse_motion_event(&mut self, _ctx: &mut Context, _x: f32, _y: f32, _dx: f32, _dy: f32) {
+        if !self.mouse_disabled {
+            let was_highlighted = self.highlighted_column;
+            self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
+            //Log ONLY switches between columns (otherwise lot of logs to console)
+            if was_highlighted != self.highlighted_column {
+                println!("Mouse moved to col {}", self.highlighted_column);
+            }
+        }
+        
+    }
+
+    fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
+        if !self.mouse_disabled {
+            self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
+        }
+    }
+
+    //Todo: If mouse_motion_event is enabled, this will always drop the token (i.e. not click away to undo move). Undetermined if this is desired or not
+    fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
+        let was_highlighted = self.highlighted_column;
+        self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
+        if was_highlighted == self.highlighted_column && self.highlighted_column >= 0 {
+            self.mouse_disabled = true;
+            if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
+                println!("Team {} drops token in col {}", self.turnIndicator.team, self.highlighted_column);
+                self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
+            }
+            self.mouse_disabled = false;
+        } 
+    }
 }
 
 pub fn main() -> GameResult {
@@ -490,6 +567,7 @@ pub fn main() -> GameResult {
         .build()?;
 
     let state = &mut GameState::new(ctx)?;
+    state.turnIndicator.change_team(1); //Start with player 1
     event::run(ctx, events_loop, state)
 }
 
