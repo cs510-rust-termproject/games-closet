@@ -637,6 +637,7 @@ impl event::EventHandler for GameState {
                 
                 //game state check
                 let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), self.turnIndicator.team);
+                println!("max of get_runs_from_point for player {} returns: {}", self.turnIndicator.team, *runs.iter().max().unwrap());
                 if *runs.iter().max().unwrap() == 4 {    //Four Connected - Proceed to Gameover - Win/Loss state
                     println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
                     self.gameover = true;
