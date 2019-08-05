@@ -43,6 +43,7 @@ const COLUMN_SELECTION_INDICATOR_POS_OFFSET: (i32, i32) = (10, 10 + TURN_INDICAT
 
 const BOARD_POS_OFFSET: (i32, i32) = (10, 10 + COLUMN_SELECTION_INDICATOR_POS_OFFSET.1 + BOARD_CELL_SIZE.1);
 
+const RESET_BUTTON_OFFSET: (i32, i32) = (10, 10);
 
 /// Constant definition for the screen size of the game window
 const SCREEN_SIZE: (f32, f32) = (
@@ -417,23 +418,34 @@ impl Board {
 }
 
 pub struct TurnIndicator {
+    gameover: bool,
     team: i32,
 }
 
 impl TurnIndicator {
     pub fn new() -> Self {
         TurnIndicator {
+            gameover: false,
             team: 0,
         }
     }
 
     fn draw(&self, ctx: &mut Context) -> GameResult<()> {
         let mut text: graphics::Text;
-        if self.team == 0 {
-            text = graphics::Text::new(("Paused", graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
+        if self.gameover {
+            if self.team == 0 {
+                text = graphics::Text::new(("Game Draw!", graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
+            } else {
+                text = graphics::Text::new((format!("Player {} wins!", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
+            }
         } else {
-            text = graphics::Text::new((format!("Player {}'s turn", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
+            if self.team == 0 {
+                text = graphics::Text::new(("Paused", graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
+            } else {
+                text = graphics::Text::new((format!("Player {}'s turn", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
+            }
         }
+
         let dim = &text.dimensions(ctx);
         let pos = Point2{
             x: TURN_INDICATOR_POS_OFFSET.0 as f32 - (dim.0 as f32 / 2.0) as f32, 
@@ -460,9 +472,50 @@ impl TurnIndicator {
         self.team = team;
     }
 
+    pub fn game_ends(&mut self) {
+        self.gameover = true;
+    }
+
     pub fn reset(&mut self) {
         self.team = 0;
+        self.gameover = false;
     }
+}
+
+// Button struct from original main
+pub struct Button {
+    text: graphics::Text,
+    outline: graphics::Rect,
+    highlighted: bool,
+}
+
+impl Button {
+    pub fn new(text: graphics::Text, dim: graphics::Rect) -> Button {
+        Button { text: text, outline: dim, highlighted: false}
+    }
+
+    pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+        let textbox = graphics::Mesh::new_rectangle(
+            ctx, 
+            graphics::DrawMode::fill(),             
+            self.outline,
+            graphics::Color::from_rgba(133,0,0,255),
+        )?;
+        graphics::draw(ctx, &textbox, (Point2 {x: 0.0, y: 0.0},))?;
+        graphics::draw(ctx, &self.text, (Point2 {x: RESET_BUTTON_OFFSET.0 as f32, y: RESET_BUTTON_OFFSET.1 as f32},))?;
+        Ok(())
+    }
+
+    pub fn is_button_under_mouse(&mut self, ctx: &mut Context) -> bool {
+        let mouse_loc = mouse::position(ctx);
+        if self.outline.contains(mouse_loc)  {
+            self.highlighted = true;
+        } else {
+            self.highlighted = false;
+        }
+        self.highlighted
+    }
+
 }
 
 pub struct GameState {
@@ -473,7 +526,9 @@ pub struct GameState {
     team_colors: Vec<MyColor>,
     pub turnIndicator: TurnIndicator,
     pub highlighted_column: i32,
-    mouse_disabled: bool
+    mouse_disabled: bool,
+    gameover: bool,
+    pub reset_button: Button,
 
 }
 
@@ -481,6 +536,9 @@ pub struct GameState {
 impl GameState {
     fn new(ctx: &mut Context) -> GameResult<GameState> {
         let board_pos = BOARD_POS_OFFSET;
+        let text = graphics::Text::new("Reset");
+        let text_width = text.width(ctx) as f32;
+        let text_height = text.height(ctx) as f32;
         let s = GameState { 
             frames: 0, 
             gameLoaded: GameLoaded::NONE,
@@ -488,7 +546,9 @@ impl GameState {
             team_colors: vec![MyColor::White, MyColor::Red, MyColor::Blue],
             turnIndicator: TurnIndicator::new(),
             highlighted_column: -1,
-            mouse_disabled: false
+            mouse_disabled: false,
+            gameover: false,
+            reset_button: Button::new(text, graphics::Rect::new(RESET_BUTTON_OFFSET.0 as f32, RESET_BUTTON_OFFSET.1 as f32, text_width, text_height)),
         };
         Ok(s)
     }
@@ -496,6 +556,24 @@ impl GameState {
 
 impl event::EventHandler for GameState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        if !self.gameover {
+            //Draw state check
+            let mut full_column = 0;
+            for column_index in 0..self.board.columns.len() {
+                if !self.board.is_column_full(column_index) {
+                    break;
+                }
+                full_column += 1;
+            }
+            if full_column == 7 {
+                //All columns full - proceed to Gameover - Draw state
+                println!("All columns full; Game Draw!");
+                self.gameover = true;
+                self.mouse_disabled = true;
+                self.turnIndicator.change_team(0);
+                self.turnIndicator.game_ends();
+            }
+        }
         Ok(())
     }
 
@@ -516,12 +594,15 @@ impl event::EventHandler for GameState {
                 self.team_colors[self.turnIndicator.team as usize].get_draw_color()
             );
         }
-        // Draw Board
+        //Draw Board
         let mesh = self.board.draw(&mut mb).build(ctx)?;
         graphics::draw(ctx, &mesh, (Point2 {x: 0.0, y: 0.0},))?;
 
-        // Draw turn indicator
+        //Draw turn indicator
         self.turnIndicator.draw(ctx)?;
+
+        //Draw reset button
+        self.reset_button.draw(ctx)?;
         graphics::present(ctx)?;
         ggez::timer::yield_now();
         Ok(())
@@ -536,7 +617,7 @@ impl event::EventHandler for GameState {
                 println!("Mouse moved to col {}", self.highlighted_column);
             }
         }
-        
+
     }
 
     fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
@@ -553,10 +634,28 @@ impl event::EventHandler for GameState {
             self.mouse_disabled = true;
             if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
                 println!("Team {} drops token in col {}", self.turnIndicator.team, self.highlighted_column);
+                
+                //game state check
+                let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), self.turnIndicator.team);
+                if *runs.iter().max().unwrap() == 4 {    //Four Connected - Proceed to Gameover - Win/Loss state
+                    println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
+                    self.gameover = true;
+                    self.turnIndicator.game_ends();
+                }
                 self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
             }
-            self.mouse_disabled = false;
+            if !self.gameover {
+                self.mouse_disabled = false;
+            }
         } 
+        if self.reset_button.is_button_under_mouse(_ctx) {
+            println!("Reset button pressed; Board reset");
+            self.board.reset();
+            self.turnIndicator.reset();
+            self.turnIndicator.change_team(1);
+            self.gameover = false;
+            self.mouse_disabled = false;
+        }
     }
 }
 
@@ -570,6 +669,8 @@ pub fn main() -> GameResult {
     state.turnIndicator.change_team(1); //Start with player 1
     event::run(ctx, events_loop, state)
 }
+
+
 
 
 #[cfg(test)]
