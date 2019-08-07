@@ -190,7 +190,8 @@ impl Column {
         Column {
             position: pos,
             // Adapted from: https://stackoverflow.com/questions/48021408/how-to-init-a-rust-vector-with-a-generator-function
-            cells: (0.. BOARD_SIZE.0).map(|y| Cell::new((pos.x, pos.y + (BOARD_CELL_SIZE.0 * y)).into())).collect(),
+            // Rev() method from https://stackoverflow.com/questions/25170091/how-to-make-a-reverse-ordered-for-loop-in-rust; used because columns drawn from top down
+            cells: (0.. BOARD_SIZE.0).rev().map(|y| Cell::new((pos.x, pos.y + (BOARD_CELL_SIZE.0 * y)).into())).collect(),
             height: 0
         }
     }
@@ -224,8 +225,7 @@ impl Column {
         if self.is_full() {
             false
         } else {
-            //Counterintuitive, but cells drawn down in grid, so "bottom" of column starts at 5, works down to 0 when full
-            self.cells[5-self.height].fill(team, color);
+            self.cells[self.height].fill(team, color);
             self.height += 1;
             true
         }
@@ -637,13 +637,14 @@ impl event::EventHandler for GameState {
                 
                 //game state check
                 let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), self.turnIndicator.team);
-                println!("max of get_runs_from_point for player {} returns: {}", self.turnIndicator.team, *runs.iter().max().unwrap());
-                if *runs.iter().max().unwrap() == 4 {    //Four Connected - Proceed to Gameover - Win/Loss state
+                println!("runs: {:?}", runs);
+                if runs[3] > 0 {    //Four Connected - Proceed to Gameover - Win/Loss state
                     println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
                     self.gameover = true;
                     self.turnIndicator.game_ends();
+                } else {
+                    self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
                 }
-                self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
             }
             if !self.gameover {
                 self.mouse_disabled = false;
