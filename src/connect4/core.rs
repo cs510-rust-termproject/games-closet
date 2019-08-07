@@ -628,28 +628,31 @@ impl event::EventHandler for GameState {
 
     //Todo: If mouse_motion_event is enabled, this will always drop the token (i.e. not click away to undo move). Undetermined if this is desired or not
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
-        let was_highlighted = self.highlighted_column;
-        self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
-        if was_highlighted == self.highlighted_column && self.highlighted_column >= 0 {
-            self.mouse_disabled = true;
-            if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
-                println!("Team {} drops token in col {}", self.turnIndicator.team, self.highlighted_column);
-                
-                //game state check
-                let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), self.turnIndicator.team);
-                println!("runs: {:?}", runs);
-                if runs[3] > 0 {    //Four Connected - Proceed to Gameover - Win/Loss state
-                    println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
-                    self.gameover = true;
-                    self.turnIndicator.game_ends();
-                } else {
-                    self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
+        if !self.mouse_disabled {
+            let was_highlighted = self.highlighted_column;
+            self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
+            if was_highlighted == self.highlighted_column && self.highlighted_column >= 0 {
+                self.mouse_disabled = true;
+                if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
+                    println!("Team {} drops token in col {}", self.turnIndicator.team, self.highlighted_column);
+                    
+                    //game state check
+                    let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), self.turnIndicator.team);
+                    println!("runs: {:?}", runs);
+                    if runs[3] > 0 {    //Four Connected - Proceed to Gameover - Win/Loss state
+                        println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
+                        self.gameover = true;
+                        self.turnIndicator.game_ends();
+                    } else {
+                        self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
+                    }
                 }
-            }
-            if !self.gameover {
-                self.mouse_disabled = false;
-            }
-        } 
+                if !self.gameover {
+                    self.mouse_disabled = false;
+                }
+            } 
+        }
+
         if self.reset_button.is_button_under_mouse(_ctx) {
             println!("Reset button pressed; Board reset");
             self.board.reset();
