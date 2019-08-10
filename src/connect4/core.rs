@@ -56,6 +56,7 @@ pub enum MyColor {
     White,
     Blue,
     Red,
+    Green
 }
 
 impl MyColor {
@@ -64,6 +65,7 @@ impl MyColor {
             MyColor::White => graphics::WHITE,
             MyColor::Blue => graphics::Color::from_rgba(0,0,255,255),
             MyColor::Red => graphics::Color::from_rgba(255,0,0,255),
+            MyColor::Green => graphics::Color::from_rgba(0,255,0,255)
         };
         circ_color
     }
@@ -617,7 +619,6 @@ impl event::EventHandler for GameState {
                 println!("Mouse moved to col {}", self.highlighted_column);
             }
         }
-
     }
 
     fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
