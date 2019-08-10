@@ -10,6 +10,7 @@
 extern crate ggez;
 mod connect4;
 
+use std::fmt;
 use ggez::event;
 use ggez::graphics;
 use ggez::input::mouse;
@@ -23,6 +24,18 @@ enum GameLoaded {
     CONNECT4,
 }
 
+//To_string implementation, found from https://doc.rust-lang.org/rust-by-example/conversion/string.html
+impl fmt::Display for GameLoaded {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let text = match self {
+            GameLoaded::NONE => "None",
+            GameLoaded::CONNECT4 => "Connect 4",
+            _ => panic!("Unknown GameLoaded type")
+        };
+        write!(f, "{}", text)
+    }
+}
+
 /*impl GameLoaded {
 
 }*/
@@ -30,12 +43,27 @@ enum GameLoaded {
 struct Button {
     text: graphics::Text,
     outline: graphics::Rect,
-    highlighted: bool,
+    pub active: bool,
+    pub highlighted: bool
 }
 
 impl Button {
     fn new(text: graphics::Text, dim: graphics::Rect) -> Button {
-        Button { text: text, outline: dim, highlighted: false}
+        Button { text: text, outline: dim, active: true, highlighted: false}
+    }
+
+    pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+        let textbox = graphics::Mesh::new_rectangle(
+            ctx, 
+            graphics::DrawMode::fill(),             
+            self.outline,
+            graphics::Color::from_rgba(133,0,0,255),
+        )?;
+        let TEXT_OFFSET = ((self.outline.w - self.text.width(ctx) as f32)/2.0, (self.outline.h - self.text.height(ctx) as f32)/2.0);
+        graphics::draw(ctx, &textbox, (Point2 {x: 0.0, y: 0.0},))?;
+        graphics::draw(ctx, &self.text, (Point2 {x: self.outline.x + TEXT_OFFSET.0, y: self.outline.y + TEXT_OFFSET.1},))?;
+        println!("{},{}  {},{}", self.outline.x, self.outline.y, self.outline.x - TEXT_OFFSET.0, self.outline.y - TEXT_OFFSET.1);
+        Ok(())
     }
 
     fn is_button_under_mouse(&mut self, ctx: &mut Context) -> bool {
@@ -66,8 +94,8 @@ impl event::EventHandler for GameState {
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
         //Usage of Point2 from ggez example 04_snake.rs, line 354 (https://github.com/ggez/ggez/blob/master/examples/04_snake.rs)
-        let dest_point = Point2 { x: 10.0, y: 10.0 };
-        graphics::draw(ctx, &self.buttons[0].text, (dest_point,))?;
+        //let dest_point = Point2 { x: 10.0, y: 10.0 };
+        self.buttons[0].draw(ctx);
         graphics::present(ctx)?;
 
         Ok(())
@@ -100,9 +128,13 @@ impl GameState {
         let text_width = text.width(ctx) as f32;
         let text_height = text.height(ctx) as f32;
         let mut btns = Vec::new();
-        btns.push(Button::new(text, graphics::Rect::new(10.0, 10.0, text_width, text_height)));
+        //Font should be set to a param
+        let buttonText = graphics::Text::new(("Test", graphics::Font::default(), 48f32));
+        let buttonOutline = graphics::Rect::new(100.0, 100.0, 120.0, 60.0);
+        btns.push(Button::new(buttonText,buttonOutline));
 
-        let s = GameState { frames: 0, buttons: btns, gameLoaded: GameLoaded::NONE };
+        let mut s = GameState { frames: 0, buttons: btns, gameLoaded: GameLoaded::NONE };
+        s.create_buttons(ctx);
         Ok(s)
     }
 
@@ -122,14 +154,31 @@ impl GameState {
         graphics::Rect::new(x_start, y_start, button_width, button_height)
     }
 
+    fn create_buttons(&mut self, ctx: &mut Context) {
+        //Apparently can't loop through enums, so have to manually add each game
+        let games = vec![GameLoaded::CONNECT4];
+        let mut maxDim = (0, 0);
+        for game in &games {
+            let buttonText = graphics::Text::new(("Test", graphics::Font::default(), 48f32));
+            maxDim.0 = maxDim.0.max(buttonText.width(ctx));
+            maxDim.0 = maxDim.0.max(buttonText.width(ctx));
+        }
+
+        for game in &games {
+            let buttonText = graphics::Text::new(("Test", graphics::Font::default(), 48f32));
+            maxDim.0 = maxDim.0.max(buttonText.width(ctx));
+            maxDim.0 = maxDim.0.max(buttonText.width(ctx));
+        }
+    }
+
 }
 
 //Main game loop - tweaked from example in GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
 pub fn main() -> GameResult {
-    /*let cb = ggez::ContextBuilder::new("gamescloset", "cs510");
+    let cb = ggez::ContextBuilder::new("gamescloset", "cs510");
     let (ctx, event_loop) = &mut cb.build()?;
 
     let state = &mut GameState::new(ctx)?;
-    event::run(ctx, event_loop, state)*/
-    connect4::core::main()
+    event::run(ctx, event_loop, state)
+    //connect4::core::main()
 }
