@@ -22,7 +22,7 @@ use connect4::core::MyColor;
 const BUTTON_PADDING: (f32, f32) =  (10.0, 10.0);
 const BUTTON_SPACING: (f32, f32) = (50.0, 50.0);
 const BUTTON_FONT_SIZE: f32 = 36f32;
-const SCREEN_SIZE: (f32, f32) = (910.0, 500.0); //Note - this is hard coded based on the known title sizes and should be adjusted if titles change
+const SCREEN_SIZE: (f32, f32) = (910.0, 700.0); //Note - this is hard coded based on the known title sizes and should be adjusted if titles change
 
 /// Enum representing which game is loaded
 enum GameLoaded {
@@ -47,7 +47,7 @@ impl fmt::Display for GameLoaded {
 }*/
 
 struct Button {
-    text: graphics::Text,
+    pub text: graphics::Text,
     outline: graphics::Rect,
     background_color: MyColor,
     active: bool,
@@ -69,20 +69,22 @@ impl Button {
     }
 
     pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-        let mut draw_color = self.background_color.get_draw_color();
-        if(self.selected || self.highlighted) {
-            draw_color = self.highlighted_color.get_draw_color();
+        if self.active {
+            let mut draw_color = self.background_color.get_draw_color();
+            if(self.selected || self.highlighted) {
+                draw_color = self.highlighted_color.get_draw_color();
+            }
+            let textbox = graphics::Mesh::new_rectangle(
+                ctx, 
+                graphics::DrawMode::fill(),             
+                self.outline,
+                draw_color,
+            )?;
+            let TEXT_OFFSET = ((self.outline.w - self.text.width(ctx) as f32)/2.0, (self.outline.h - self.text.height(ctx) as f32)/2.0);
+            graphics::draw(ctx, &textbox, (Point2 {x: 0.0, y: 0.0},))?;
+            graphics::draw(ctx, &self.text, (Point2 {x: self.outline.x + TEXT_OFFSET.0, y: self.outline.y + TEXT_OFFSET.1},))?;
+            //println!("{},{}  {},{}", self.outline.x, self.outline.y, self.outline.x - TEXT_OFFSET.0, self.outline.y - TEXT_OFFSET.1);
         }
-        let textbox = graphics::Mesh::new_rectangle(
-            ctx, 
-            graphics::DrawMode::fill(),             
-            self.outline,
-            draw_color,
-        )?;
-        let TEXT_OFFSET = ((self.outline.w - self.text.width(ctx) as f32)/2.0, (self.outline.h - self.text.height(ctx) as f32)/2.0);
-        graphics::draw(ctx, &textbox, (Point2 {x: 0.0, y: 0.0},))?;
-        graphics::draw(ctx, &self.text, (Point2 {x: self.outline.x + TEXT_OFFSET.0, y: self.outline.y + TEXT_OFFSET.1},))?;
-        //println!("{},{}  {},{}", self.outline.x, self.outline.y, self.outline.x - TEXT_OFFSET.0, self.outline.y - TEXT_OFFSET.1);
         Ok(())
     }
 
@@ -97,7 +99,7 @@ impl Button {
 
     fn is_button_under_mouse(&mut self, ctx: &mut Context) -> bool {
         let mouse_loc = mouse::position(ctx);
-        if self.outline.contains(mouse_loc)  {
+        if self.active && self.outline.contains(mouse_loc)  {
             self.highlighted = true;
         } else {
             self.highlighted = false;
@@ -109,12 +111,20 @@ impl Button {
 struct GameState {
     frames: usize,
     buttons: Vec<Vec<Button>>,
+    buttons_available: usize,
     gameLoaded: GameLoaded,
 }
 
 impl event::EventHandler for GameState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        //println!("Update called");
+        //Only allow buttons to be active if previous options selected
+        for i in 0..self.buttons.len() {
+            for j in 0..self.buttons[i].len() {
+                //println!("{}: ({},{}) {}", self.buttons[i][j].text.contents(), i, j, i <= self.buttons_available);
+                self.buttons[i][j].active = i <= self.buttons_available;
+                self.buttons[i][j].selected = (i <= self.buttons_available) && self.buttons[i][j].selected;
+            }
+        }
         Ok(())
     }
 
@@ -149,11 +159,24 @@ impl event::EventHandler for GameState {
 
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
         //Check whether buttons are highlighted (set by clicking down). If one is highlighted and mouse still on it, button is "clicked"
-        for i in 0..self.buttons.len() {
+        for i in 1..self.buttons.len() {
             for j in 0..self.buttons[i].len() {
                 if self.buttons[i][j].highlighted && self.buttons[i][j].is_button_under_mouse(_ctx) {
-                    self.buttons[i][j].selected = !self.buttons[i][j].selected;
+                    let highlighted = self.is_button_in_column_selected(i);
+                    println!("Highlighted {}", highlighted);
+                    if highlighted < 0 {
+                        self.buttons[i][j].selected = true;
+                        self.buttons_available = i+1;
+                    } else if highlighted != j as i32 {
+                        self.buttons[i][j].selected = true;
+                        self.buttons[i][highlighted as usize].selected = false;
+                        self.buttons_available = i+1;
+                    } else {
+                        self.buttons[i][j].selected = false;
+                        self.buttons_available = i;
+                    }
                     println!("Button '{}' clicked!", self.buttons[i][j].text.contents());
+                    return;
                 }
             }
         }
@@ -165,7 +188,7 @@ impl event::EventHandler for GameState {
 impl GameState {
     fn new(ctx: &mut Context) -> GameResult<GameState> {
         //Font should be set to a param
-        let mut s = GameState { frames: 0, buttons: Vec::<Vec::<Button>>::new(), gameLoaded: GameLoaded::NONE };
+        let mut s = GameState { frames: 0, buttons: Vec::<Vec::<Button>>::new(), buttons_available:1, gameLoaded: GameLoaded::NONE };
         s.create_buttons(ctx);
         Ok(s)
     }
@@ -179,6 +202,21 @@ impl GameState {
         }
     }
 
+    //Method to determine if a button in a menu column is selected. Returns index of a highlighted button or -1 if none is highlighted
+    fn is_button_in_column_selected(&self, col: usize) -> i32 {
+        if col < 0 || col > self.buttons.len() {
+            println!("Error: Cannot check button column {}", col);
+        } else {
+            for j in 0..self.buttons[col].len() {
+                if self.buttons[col][j].selected {
+                    return j as i32;
+                }
+        }
+        }
+        -1
+    }
+
+    //Function to initialize possible buttons
     fn create_buttons(&mut self, ctx: &mut Context) {
         //Apparently can't loop through enums, so have to manually add each game
         let games = vec![GameLoaded::CONNECT4];
