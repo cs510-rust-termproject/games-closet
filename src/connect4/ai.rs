@@ -83,7 +83,7 @@ pub struct AI {
 }
 
 impl AI {
-    fn new(team: i32, difficulty: i32) -> Self {
+    pub fn new(team: i32, difficulty: i32) -> Self {
         AI { team, difficulty }
     }
 

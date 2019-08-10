@@ -8,12 +8,7 @@ use ggez::{event, graphics, Context, GameResult};
 use ggez::mint::Point2;
 use ggez::input::mouse;
 use ggez::input::mouse::MouseButton;
-
-/// Enum representing which game is loaded
-enum GameLoaded {
-    NONE,
-    CONNECT4,
-}
+use connect4::ai::AI;
 
 /// Constant definition for the connect4 board size: 6x7 cells, row x column
 pub const BOARD_SIZE: (i32, i32) = (6, 7);
@@ -522,8 +517,7 @@ impl Button {
 
 pub struct GameState {
     frames: usize,
-    gameLoaded: GameLoaded,
-    /// connect4 board
+    ai_players: Vec<AI>,
     pub board: Board,
     team_colors: Vec<MyColor>,
     pub turnIndicator: TurnIndicator,
@@ -536,14 +530,18 @@ pub struct GameState {
 
 //Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
 impl GameState {
-    fn new(ctx: &mut Context) -> GameResult<GameState> {
+    fn new(ctx: &mut Context, players: i32) -> GameResult<GameState> {
         let board_pos = BOARD_POS_OFFSET;
         let text = graphics::Text::new("Reset");
         let text_width = text.width(ctx) as f32;
         let text_height = text.height(ctx) as f32;
+        let mut bots = Vec::<AI>::new();
+        for i in 0..players {
+            bots.push(AI::new(2-i, 3));
+        }
         let s = GameState { 
             frames: 0, 
-            gameLoaded: GameLoaded::NONE,
+            ai_players: bots,
             board: Board::new(board_pos.into()),
             team_colors: vec![MyColor::White, MyColor::Red, MyColor::Blue],
             turnIndicator: TurnIndicator::new(),
@@ -665,13 +663,13 @@ impl event::EventHandler for GameState {
     }
 }
 
-pub fn main() -> GameResult {
+pub fn main(num_players: i32) -> GameResult {
     let (ctx, events_loop) = &mut ggez::ContextBuilder::new("Connect4", "Lane Barton & Andre Mukhsia")
         .window_setup(ggez::conf::WindowSetup::default().title("Game Closet - Connect 4"))
         .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1))
         .build()?;
 
-    let state = &mut GameState::new(ctx)?;
+    let state = &mut GameState::new(ctx, num_players)?;
     state.turnIndicator.change_team(1); //Start with player 1
     event::run(ctx, events_loop, state)
 }

@@ -42,9 +42,25 @@ impl fmt::Display for GameLoaded {
     }
 }
 
-/*impl GameLoaded {
+impl From<String> for GameLoaded {
+    fn from(text: String) -> Self {
+        let val = match text.as_str() {
+            "Connect 4" => GameLoaded::CONNECT4,
+            _ => GameLoaded::NONE
+        };
+        val
+    }
+}
 
-}*/
+impl GameLoaded {
+    pub fn run_game_loop(&self, num_players: i32) -> GameResult {
+        let main = match self {
+            GameLoaded::CONNECT4 => connect4::core::main(num_players),
+            _ => panic!("Cannot run game loop for 'None' or unknown GameLoaded type")
+        };
+        main
+    }
+}
 
 struct Button {
     pub text: graphics::Text,
@@ -71,7 +87,7 @@ impl Button {
     pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
         if self.active {
             let mut draw_color = self.background_color.get_draw_color();
-            if(self.selected || self.highlighted) {
+            if self.selected || self.highlighted {
                 draw_color = self.highlighted_color.get_draw_color();
             }
             let textbox = graphics::Mesh::new_rectangle(
@@ -124,6 +140,23 @@ impl event::EventHandler for GameState {
                 self.buttons[i][j].active = i <= self.buttons_available;
                 self.buttons[i][j].selected = (i <= self.buttons_available) && self.buttons[i][j].selected;
             }
+        }
+        //Check if "Start Game" selected, change context accordingly
+        if self.buttons[self.buttons.len()-1][0].selected {
+            let game_index = self.is_button_in_column_selected(1);
+            if game_index >= 0 {
+                self.gameLoaded = GameLoaded::from(self.buttons[1][game_index as usize].text.contents());
+            } else {
+                println!("No game loaded to start!");
+                return Ok(());
+            }
+            let players_index = self.is_button_in_column_selected(2);
+            if players_index < 0 {
+                println!("No player number selected to start games!");
+                return Ok(());
+            } 
+            ggez::quit(_ctx);
+            self.gameLoaded.run_game_loop(players_index);
         }
         Ok(())
     }
