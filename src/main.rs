@@ -22,7 +22,7 @@ use connect4::core::MyColor;
 const BUTTON_PADDING: (f32, f32) =  (10.0, 10.0);
 const BUTTON_SPACING: (f32, f32) = (50.0, 50.0);
 const BUTTON_FONT_SIZE: f32 = 36f32;
-const SCREEN_SIZE: (f32, f32) = (910.0, 700.0); //Note - this is hard coded based on the known title sizes and should be adjusted if titles change
+const SCREEN_SIZE: (f32, f32) = (910.0, 500.0); //Note - this is hard coded based on the known title sizes and should be adjusted if titles change
 
 /// Enum representing which game is loaded
 enum GameLoaded {
@@ -163,7 +163,6 @@ impl event::EventHandler for GameState {
             for j in 0..self.buttons[i].len() {
                 if self.buttons[i][j].highlighted && self.buttons[i][j].is_button_under_mouse(_ctx) {
                     let highlighted = self.is_button_in_column_selected(i);
-                    println!("Highlighted {}", highlighted);
                     if highlighted < 0 {
                         self.buttons[i][j].selected = true;
                         self.buttons_available = i+1;
@@ -211,7 +210,7 @@ impl GameState {
                 if self.buttons[col][j].selected {
                     return j as i32;
                 }
-        }
+            }
         }
         -1
     }
@@ -221,10 +220,10 @@ impl GameState {
         //Apparently can't loop through enums, so have to manually add each game
         let games = vec![GameLoaded::CONNECT4];
         //Init button vec for titles, games and num players
-        while self.buttons.len() < 3 {
+        while self.buttons.len() < 4 {
             self.buttons.push(Vec::<Button>::new());
         }
-        //TITLES
+        //TITLES AND START GAME BUTTON (buttons[0] and buttons[3])
         let titles = vec![graphics::Text::new(("Select Game", graphics::Font::default(), 48f32)),
                            graphics::Text::new(("Players", graphics::Font::default(), 48f32)),
                            graphics::Text::new(("Start Game", graphics::Font::default(), 48f32))];
@@ -233,11 +232,18 @@ impl GameState {
             let buttonText =  graphics::Text::new((title.contents(), graphics::Font::default(), 48f32));
             let buttonOutline = graphics::Rect::new(loc, BUTTON_SPACING.1, 2.0*BUTTON_PADDING.0 + buttonText.width(ctx) as f32, 2.0*BUTTON_PADDING.1 + buttonText.height(ctx) as f32);
             let mut button = Button::new(buttonText, buttonOutline);
-            button.set_colors(MyColor::Red, MyColor::Red);
-            self.buttons[0].push(button);
+            if button.text.contents() != "Start Game" {
+                button.set_colors(MyColor::Red, MyColor::Red);
+                self.buttons[0].push(button);
+            } else {
+                button.set_colors(MyColor::Blue, MyColor::Green);
+                button.outline.y = (SCREEN_SIZE.1 - button.outline.h)/2.0;
+                self.buttons[3].push(button);
+            }
+            
             loc = loc + buttonOutline.w + BUTTON_SPACING.0;
         }
-        //GAME SELECTION BUTTONS
+        //GAME SELECTION BUTTONS (buttons[1])
         let mut maxDim = (0, 0);
         //Identify max length for text for all games
         for game in &games {
@@ -264,8 +270,8 @@ impl GameState {
             button.set_colors(MyColor::Blue, MyColor::Green);
             self.buttons[1].push(button);
         }
-        //PLAYER NUMBERS
-        for i in 0..10 {
+        //PLAYER NUMBERS (buttons[1])
+        for i in 0..3 {
             let mut titleOutline = self.buttons[0][0].outline;  
             if i == 0 {
                 titleOutline = self.buttons[0][1].outline;            
