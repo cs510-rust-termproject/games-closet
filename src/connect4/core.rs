@@ -52,6 +52,9 @@ pub enum MyColor {
     Blue,
     Red,
     Green
+    Green,
+    Brown,
+    Black,
 }
 
 impl MyColor {
@@ -61,6 +64,9 @@ impl MyColor {
             MyColor::Blue => graphics::Color::from_rgba(0,0,255,255),
             MyColor::Red => graphics::Color::from_rgba(255,0,0,255),
             MyColor::Green => graphics::Color::from_rgba(0,255,0,255)
+            MyColor::Green => graphics::Color::from_rgba(0,255,0,255),
+            MyColor::Brown => graphics::Color::from_rgba(205,133,63,255),
+            MyColor::Black => graphics::BLACK,
         };
         circ_color
     }
