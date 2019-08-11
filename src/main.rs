@@ -18,10 +18,8 @@ use ggez::input::mouse::MouseButton;
 use ggez::mint::Point2;
 use ggez::{Context, GameResult};
 use connect4::core::MyColor;
+use connect4::button::{BUTTON_FONT_SIZE, BUTTON_PADDING, BUTTON_SPACING, Button};
 
-const BUTTON_PADDING: (f32, f32) =  (10.0, 10.0);
-const BUTTON_SPACING: (f32, f32) = (50.0, 50.0);
-const BUTTON_FONT_SIZE: f32 = 36f32;
 const SCREEN_SIZE: (f32, f32) = (910.0, 500.0); //Note - this is hard coded based on the known title sizes and should be adjusted if titles change
 
 /// Enum representing which game is loaded
@@ -49,68 +47,6 @@ impl From<String> for GameLoaded {
             _ => GameLoaded::NONE
         };
         val
-    }
-}
-
-struct Button {
-    pub text: graphics::Text,
-    outline: graphics::Rect,
-    background_color: MyColor,
-    active: bool,
-    pub selected: bool,
-    pub highlighted: bool,
-    highlighted_color: MyColor
-}
-
-impl Button {
-    fn new(text: graphics::Text, dim: graphics::Rect) -> Button {
-        Button { text: text, 
-                 outline: dim, 
-                 background_color: MyColor::Red,
-                 active: true, 
-                 selected: false, 
-                 highlighted: false,
-                 highlighted_color: MyColor::Green
-                }
-    }
-
-    pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-        if self.active {
-            let mut draw_color = self.background_color.get_draw_color();
-            if self.selected || self.highlighted {
-                draw_color = self.highlighted_color.get_draw_color();
-            }
-            let textbox = graphics::Mesh::new_rectangle(
-                ctx, 
-                graphics::DrawMode::fill(),             
-                self.outline,
-                draw_color,
-            )?;
-            let TEXT_OFFSET = ((self.outline.w - self.text.width(ctx) as f32)/2.0, (self.outline.h - self.text.height(ctx) as f32)/2.0);
-            graphics::draw(ctx, &textbox, (Point2 {x: 0.0, y: 0.0},))?;
-            graphics::draw(ctx, &self.text, (Point2 {x: self.outline.x + TEXT_OFFSET.0, y: self.outline.y + TEXT_OFFSET.1},))?;
-            //println!("{},{}  {},{}", self.outline.x, self.outline.y, self.outline.x - TEXT_OFFSET.0, self.outline.y - TEXT_OFFSET.1);
-        }
-        Ok(())
-    }
-
-    fn set_active(&mut self, a: bool) {
-        self.active = a;
-    }
-
-    fn set_colors(&mut self, bg_color: MyColor, hl_color: MyColor) {
-        self.background_color = bg_color;
-        self.highlighted_color = hl_color;
-    }
-
-    fn is_button_under_mouse(&mut self, ctx: &mut Context) -> bool {
-        let mouse_loc = mouse::position(ctx);
-        if self.active && self.outline.contains(mouse_loc)  {
-            self.highlighted = true;
-        } else {
-            self.highlighted = false;
-        }
-        self.highlighted
     }
 }
 
@@ -227,7 +163,20 @@ impl event::EventHandler for GameState {
                 }
             }
         } else {
-            self.connect4_state.mouse_button_up_event(_ctx, _button, _x, _y);
+            if self.connect4_state.mouse_button_up_event(_ctx, _button, _x, _y) {
+                self.main_screen_is_active = true;
+
+                //Need to reset button selection, otherwise it only "resets" connect4
+                for i in 1..self.buttons.len() {
+                    for j in 0..self.buttons[i].len() {
+                        self.buttons[i][j].selected = false;
+                        self.buttons_available = 1;
+                    }
+                }
+                //Change windows size for main menu
+                graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1));
+                graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, SCREEN_SIZE.0+10.0, SCREEN_SIZE.1+10.0));
+            }
         }
     }
 
