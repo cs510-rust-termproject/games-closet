@@ -52,16 +52,6 @@ impl From<String> for GameLoaded {
     }
 }
 
-impl GameLoaded {
-    pub fn run_game_loop(&self, num_players: i32) -> GameResult {
-        let main = match self {
-            GameLoaded::CONNECT4 => connect4::core::main(num_players),
-            _ => panic!("Cannot run game loop for 'None' or unknown GameLoaded type")
-        };
-        main
-    }
-}
-
 struct Button {
     pub text: graphics::Text,
     outline: graphics::Rect,
@@ -129,88 +119,115 @@ struct GameState {
     buttons: Vec<Vec<Button>>,
     buttons_available: usize,
     gameLoaded: GameLoaded,
+    connect4_state: connect4::core::GameState,
+    main_screen_is_active: bool,
 }
 
 impl event::EventHandler for GameState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        //Only allow buttons to be active if previous options selected
-        for i in 0..self.buttons.len() {
-            for j in 0..self.buttons[i].len() {
-                //println!("{}: ({},{}) {}", self.buttons[i][j].text.contents(), i, j, i <= self.buttons_available);
-                self.buttons[i][j].active = i <= self.buttons_available;
-                self.buttons[i][j].selected = (i <= self.buttons_available) && self.buttons[i][j].selected;
+        if self.main_screen_is_active {
+            //Only allow buttons to be active if previous options selected
+            for i in 0..self.buttons.len() {
+                for j in 0..self.buttons[i].len() {
+                    //println!("{}: ({},{}) {}", self.buttons[i][j].text.contents(), i, j, i <= self.buttons_available);
+                    self.buttons[i][j].active = i <= self.buttons_available;
+                    self.buttons[i][j].selected = (i <= self.buttons_available) && self.buttons[i][j].selected;
+                }
             }
-        }
-        //Check if "Start Game" selected, change context accordingly
-        if self.buttons[self.buttons.len()-1][0].selected {
-            let game_index = self.is_button_in_column_selected(1);
-            if game_index >= 0 {
-                self.gameLoaded = GameLoaded::from(self.buttons[1][game_index as usize].text.contents());
-            } else {
-                println!("No game loaded to start!");
-                return Ok(());
+            //Check if "Start Game" selected, change context accordingly
+            if self.buttons[self.buttons.len()-1][0].selected {
+                let game_index = self.is_button_in_column_selected(1);
+                if game_index >= 0 {
+                    self.gameLoaded = GameLoaded::from(self.buttons[1][game_index as usize].text.contents());
+                } else {
+                    println!("No game loaded to start!");
+                    return Ok(());
+                }
+                let players_index = self.is_button_in_column_selected(2);
+                if players_index < 0 {
+                    println!("No player number selected to start games!");
+                    return Ok(());
+                } 
+                //Create new connect4 state
+                self.connect4_state = connect4::core::GameState::new(_ctx, players_index);
+                //Change windows size for connect4
+                graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(connect4::core::SCREEN_SIZE.0, connect4::core::SCREEN_SIZE.1))?;
+                graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, connect4::core::SCREEN_SIZE.0+10.0, connect4::core::SCREEN_SIZE.1+10.0))?;
+                self.main_screen_is_active = false;
+                self.connect4_state.turnIndicator.change_team(1);
             }
-            let players_index = self.is_button_in_column_selected(2);
-            if players_index < 0 {
-                println!("No player number selected to start games!");
-                return Ok(());
-            } 
-            ggez::quit(_ctx);
-            self.gameLoaded.run_game_loop(players_index);
+        } else {
+            self.connect4_state.update(_ctx)?;
         }
+
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
+        if self.main_screen_is_active {
+            graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
-        //Usage of Point2 from ggez example 04_snake.rs, line 354 (https://github.com/ggez/ggez/blob/master/examples/04_snake.rs)
-        //let dest_point = Point2 { x: 10.0, y: 10.0 };
-        self.draw_buttons(ctx);
-        graphics::present(ctx)?;
-
+            //Usage of Point2 from ggez example 04_snake.rs, line 354 (https://github.com/ggez/ggez/blob/master/examples/04_snake.rs)
+            //let dest_point = Point2 { x: 10.0, y: 10.0 };
+            self.draw_buttons(ctx);
+            graphics::present(ctx)?;
+        } else {
+            self.connect4_state.draw(ctx)?;
+        }
         Ok(())
     }
 
     fn mouse_motion_event(&mut self, _ctx: &mut Context, _x: f32, _y: f32, _dx: f32, _dy: f32) {
-        for i in 0..self.buttons.len() {
-            for j in 0..self.buttons[i].len() {
-                self.buttons[i][j].is_button_under_mouse(_ctx);
+        if self.main_screen_is_active {
+            for i in 0..self.buttons.len() {
+                for j in 0..self.buttons[i].len() {
+                    self.buttons[i][j].is_button_under_mouse(_ctx);
+                }
             }
+        } else {
+            self.connect4_state.mouse_motion_event(_ctx, _x, _y, _dx, _dy);
         }
     }
 
     fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
-        //Check whether buttons are highlighted, updated states accordingly
-        for i in 0..self.buttons.len() {
-            for j in 0..self.buttons[i].len() {
-                self.buttons[i][j].is_button_under_mouse(_ctx);
-                //println!("Button '{}' highlighted: {}", self.buttons[i][j].text.contents(), self.buttons[i][j].highlighted);
+        if self.main_screen_is_active {
+            //Check whether buttons are highlighted, updated states accordingly
+            for i in 0..self.buttons.len() {
+                for j in 0..self.buttons[i].len() {
+                    self.buttons[i][j].is_button_under_mouse(_ctx);
+                    //println!("Button '{}' highlighted: {}", self.buttons[i][j].text.contents(), self.buttons[i][j].highlighted);
+                }
             }
+        } else {
+            self.connect4_state.mouse_button_down_event(_ctx, _button, _x, _y);
         }
     }
 
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
-        //Check whether buttons are highlighted (set by clicking down). If one is highlighted and mouse still on it, button is "clicked"
-        for i in 1..self.buttons.len() {
-            for j in 0..self.buttons[i].len() {
-                if self.buttons[i][j].highlighted && self.buttons[i][j].is_button_under_mouse(_ctx) {
-                    let highlighted = self.is_button_in_column_selected(i);
-                    if highlighted < 0 {
-                        self.buttons[i][j].selected = true;
-                        self.buttons_available = i+1;
-                    } else if highlighted != j as i32 {
-                        self.buttons[i][j].selected = true;
-                        self.buttons[i][highlighted as usize].selected = false;
-                        self.buttons_available = i+1;
-                    } else {
-                        self.buttons[i][j].selected = false;
-                        self.buttons_available = i;
+        if self.main_screen_is_active {
+            //Check whether buttons are highlighted (set by clicking down). If one is highlighted and mouse still on it, button is "clicked"
+            for i in 1..self.buttons.len() {
+                for j in 0..self.buttons[i].len() {
+                    if self.buttons[i][j].highlighted && self.buttons[i][j].is_button_under_mouse(_ctx) {
+                        let highlighted = self.is_button_in_column_selected(i);
+                        if highlighted < 0 {
+                            self.buttons[i][j].selected = true;
+                            self.buttons_available = i+1;
+                        } else if highlighted != j as i32 {
+                            self.buttons[i][j].selected = true;
+                            self.buttons[i][highlighted as usize].selected = false;
+                            self.buttons_available = i+1;
+                        } else {
+                            self.buttons[i][j].selected = false;
+                            self.buttons_available = i;
+                        }
+                        println!("Button '{}' clicked!", self.buttons[i][j].text.contents());
+                        return;
                     }
-                    println!("Button '{}' clicked!", self.buttons[i][j].text.contents());
-                    return;
                 }
             }
+        } else {
+            self.connect4_state.mouse_button_up_event(_ctx, _button, _x, _y);
         }
     }
 
@@ -220,7 +237,7 @@ impl event::EventHandler for GameState {
 impl GameState {
     fn new(ctx: &mut Context) -> GameResult<GameState> {
         //Font should be set to a param
-        let mut s = GameState { frames: 0, buttons: Vec::<Vec::<Button>>::new(), buttons_available:1, gameLoaded: GameLoaded::NONE };
+        let mut s = GameState { frames: 0, buttons: Vec::<Vec::<Button>>::new(), buttons_available:1, gameLoaded: GameLoaded::NONE, connect4_state: connect4::core::GameState::new(ctx, 0), main_screen_is_active: true, };
         s.create_buttons(ctx);
         Ok(s)
     }
