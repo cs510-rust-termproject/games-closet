@@ -8,12 +8,7 @@ use ggez::{event, graphics, Context, GameResult};
 use ggez::mint::Point2;
 use ggez::input::mouse;
 use ggez::input::mouse::MouseButton;
-
-/// Enum representing which game is loaded
-enum GameLoaded {
-    NONE,
-    CONNECT4,
-}
+use connect4::ai::AI;
 
 /// Constant definition for the connect4 board size: 6x7 cells, row x column
 pub const BOARD_SIZE: (i32, i32) = (6, 7);
@@ -46,7 +41,7 @@ const BOARD_POS_OFFSET: (i32, i32) = (10, 10 + COLUMN_SELECTION_INDICATOR_POS_OF
 const RESET_BUTTON_OFFSET: (i32, i32) = (10, 10);
 
 /// Constant definition for the screen size of the game window
-const SCREEN_SIZE: (f32, f32) = (
+pub const SCREEN_SIZE: (f32, f32) = (
     BOARD_TOTAL_SIZE.0 + (BOARD_POS_OFFSET.0 as f32),
     BOARD_TOTAL_SIZE.1 + (BOARD_POS_OFFSET.1 as f32),
 );
@@ -522,8 +517,7 @@ impl Button {
 
 pub struct GameState {
     frames: usize,
-    gameLoaded: GameLoaded,
-    /// connect4 board
+    ai_players: Vec<AI>,
     pub board: Board,
     team_colors: Vec<MyColor>,
     pub turnIndicator: TurnIndicator,
@@ -536,14 +530,18 @@ pub struct GameState {
 
 //Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
 impl GameState {
-    fn new(ctx: &mut Context) -> GameResult<GameState> {
+    pub fn new(ctx: &mut Context, players: i32) -> GameState {
         let board_pos = BOARD_POS_OFFSET;
         let text = graphics::Text::new("Reset");
         let text_width = text.width(ctx) as f32;
         let text_height = text.height(ctx) as f32;
-        let s = GameState { 
+        let mut bots = Vec::<AI>::new();
+        for i in 0..players {
+            bots.push(AI::new(2-i, 3));
+        }
+        GameState { 
             frames: 0, 
-            gameLoaded: GameLoaded::NONE,
+            ai_players: bots,
             board: Board::new(board_pos.into()),
             team_colors: vec![MyColor::White, MyColor::Red, MyColor::Blue],
             turnIndicator: TurnIndicator::new(),
@@ -551,13 +549,10 @@ impl GameState {
             mouse_disabled: false,
             gameover: false,
             reset_button: Button::new(text, graphics::Rect::new(RESET_BUTTON_OFFSET.0 as f32, RESET_BUTTON_OFFSET.1 as f32, text_width, text_height)),
-        };
-        Ok(s)
+        }
     }
-}
 
-impl event::EventHandler for GameState {
-    fn update(&mut self, _ctx: &mut Context) -> GameResult {
+    pub fn update(&mut self, _ctx: &mut Context) -> GameResult {
         if !self.gameover {
             //Draw state check
             let mut full_column = 0;
@@ -579,7 +574,7 @@ impl event::EventHandler for GameState {
         Ok(())
     }
 
-    fn draw(&mut self, ctx: &mut Context) -> GameResult {
+    pub fn draw(&mut self, ctx: &mut Context) -> GameResult {
         //Draw screen background
         graphics::clear(ctx, graphics::BLACK);
         let mut mb = graphics::MeshBuilder::new();
@@ -610,7 +605,7 @@ impl event::EventHandler for GameState {
         Ok(())
     }
 
-    fn mouse_motion_event(&mut self, _ctx: &mut Context, _x: f32, _y: f32, _dx: f32, _dy: f32) {
+    pub fn mouse_motion_event(&mut self, _ctx: &mut Context, _x: f32, _y: f32, _dx: f32, _dy: f32) {
         if !self.mouse_disabled {
             let was_highlighted = self.highlighted_column;
             self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
@@ -621,14 +616,14 @@ impl event::EventHandler for GameState {
         }
     }
 
-    fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
+    pub fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
         if !self.mouse_disabled {
             self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
         }
     }
 
     //Todo: If mouse_motion_event is enabled, this will always drop the token (i.e. not click away to undo move). Undetermined if this is desired or not
-    fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
+    pub fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
         if !self.mouse_disabled {
             let was_highlighted = self.highlighted_column;
             self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
@@ -665,16 +660,18 @@ impl event::EventHandler for GameState {
     }
 }
 
-pub fn main() -> GameResult {
+/*
+pub fn main(num_players: i32) -> GameResult {
     let (ctx, events_loop) = &mut ggez::ContextBuilder::new("Connect4", "Lane Barton & Andre Mukhsia")
         .window_setup(ggez::conf::WindowSetup::default().title("Game Closet - Connect 4"))
         .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1))
         .build()?;
 
-    let state = &mut GameState::new(ctx)?;
+    let state = &mut GameState::new(ctx, num_players)?;
     state.turnIndicator.change_team(1); //Start with player 1
     event::run(ctx, events_loop, state)
 }
+*/
 
 
 
