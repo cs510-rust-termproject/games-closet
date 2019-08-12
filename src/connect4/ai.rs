@@ -4,10 +4,6 @@
 // distribution of this software for license terms.
 
 use connect4::core::{GridPosition, Board, GameState, BOARD_SIZE, MyColor};
-/*use connect4::core::Board;
-use connect4::core::GameState;
-use connect4::core::BOARD_SIZE;
-use connect4::core::MyColor;*/
 use std::cmp::Ordering;
 
 pub struct MoveCheck {
@@ -78,7 +74,7 @@ impl PartialEq for MoveCheck {
 impl Eq for MoveCheck {}
 
 pub struct AI {
-    team: i32,
+    pub team: i32,
     difficulty: i32
 }
 
@@ -87,11 +83,11 @@ impl AI {
         AI { team, difficulty }
     }
 
-    fn pick_optimal_move(&self, state: GameState) -> i32 {
+    pub fn pick_optimal_move(&self, board: Board) -> i32 {
         let mut bestMove = -1;
         let mut bestProb = 0.0;
         for i in 0..BOARD_SIZE.1 {
-            let mut currBoard = state.board.clone();
+            let mut currBoard = board.clone();
             currBoard.insert(i, self.team, MyColor::White);
             let currProb = self.find_win_probability(currBoard, 0, self.difficulty);
             if currProb == 1.0 {

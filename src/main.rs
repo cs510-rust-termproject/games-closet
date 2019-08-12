@@ -85,7 +85,7 @@ impl event::EventHandler for GameState {
                     return Ok(());
                 } 
                 //Create new connect4 state
-                self.connect4_state = connect4::core::GameState::new(_ctx, players_index);
+                self.connect4_state = connect4::core::GameState::new(_ctx, 2-players_index);
                 //Change windows size for connect4
                 graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(connect4::core::SCREEN_SIZE.0, connect4::core::SCREEN_SIZE.1))?;
                 graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, connect4::core::SCREEN_SIZE.0+10.0, connect4::core::SCREEN_SIZE.1+10.0))?;

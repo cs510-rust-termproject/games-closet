@@ -549,6 +549,29 @@ impl GameState {
                 self.turnIndicator.change_team(0);
                 self.turnIndicator.game_ends();
             }
+            //Check for AI actions
+            let mut bot_active = false;
+            for ai in &self.ai_players {
+                if ai.team == self.turnIndicator.team {
+                    bot_active = true;
+                    self.mouse_disabled = true;
+                    self.highlighted_column =  ai.pick_optimal_move(self.board.clone());
+                    if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
+                        println!("AI Player {} drops token in col {}", ai.team, self.highlighted_column);
+                        
+                        //game state check
+                        let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), ai.team);
+                        if runs[3] > 0 {    //Four Connected - Proceed to Gameover - Win/Loss state
+                            println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
+                            self.gameover = true;
+                            self.turnIndicator.game_ends();
+                        } else {
+                            self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
+                        }
+                    }
+                }
+            }
+            self.mouse_disabled = bot_active;
         }
         Ok(())
     }
