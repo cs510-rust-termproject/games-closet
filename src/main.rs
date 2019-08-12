@@ -61,6 +61,7 @@ struct GameState {
 
 impl event::EventHandler for GameState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        self.frames += 1; //"Timer"
         if self.main_screen_is_active {
             //Only allow buttons to be active if previous options selected
             for i in 0..self.buttons.len() {

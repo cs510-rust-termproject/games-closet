@@ -75,12 +75,13 @@ impl Eq for MoveCheck {}
 
 pub struct AI {
     pub team: i32,
-    difficulty: i32
+    difficulty: i32,
+    pub last_move_frame: i32
 }
 
 impl AI {
     pub fn new(team: i32, difficulty: i32) -> Self {
-        AI { team, difficulty }
+        AI { team: team, difficulty: difficulty, last_move_frame: -1 }
     }
 
     pub fn pick_optimal_move(&self, board: Board) -> i32 {
