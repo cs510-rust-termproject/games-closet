@@ -4,10 +4,6 @@
 // distribution of this software for license terms.
 
 use connect4::core::{GridPosition, Board, GameState, BOARD_SIZE, MyColor};
-/*use connect4::core::Board;
-use connect4::core::GameState;
-use connect4::core::BOARD_SIZE;
-use connect4::core::MyColor;*/
 use std::cmp::Ordering;
 
 pub struct MoveCheck {
@@ -78,27 +74,33 @@ impl PartialEq for MoveCheck {
 impl Eq for MoveCheck {}
 
 pub struct AI {
-    team: i32,
-    difficulty: i32
+    pub team: i32,
+    difficulty: i32,
+    pub last_move_frame: i32
 }
 
 impl AI {
     pub fn new(team: i32, difficulty: i32) -> Self {
-        AI { team, difficulty }
+        AI { team: team, difficulty: difficulty, last_move_frame: -1 }
     }
 
-    fn pick_optimal_move(&self, state: GameState) -> i32 {
+    pub fn pick_optimal_move(&self, board: Board) -> i32 {
         let mut bestMove = -1;
         let mut bestProb = 0.0;
         for i in 0..BOARD_SIZE.1 {
-            let mut currBoard = state.board.clone();
-            currBoard.insert(i, self.team, MyColor::White);
-            let currProb = self.find_win_probability(currBoard, 0, self.difficulty);
-            if currProb == 1.0 {
-                return i as i32;
-            } else if currProb >= bestProb {
-                bestProb = currProb;
-                bestMove = i;
+            if !board.is_column_full(i as usize) {
+                let nextMove = MoveCheck::new(board.clone(), i, self.team);
+                if nextMove.has_end_result() {
+                    return i;
+                } else {
+                    let currProb = self.find_win_probability(nextMove.board, 1, self.difficulty);
+                    if currProb == 1.0 {
+                        return i;
+                    } else if currProb >= bestProb {
+                        bestProb = currProb;
+                        bestMove = i;
+                    }
+                }
             }
         }
         bestMove
@@ -107,10 +109,8 @@ impl AI {
     fn find_win_probability(&self, board: Board, currMove: i32, lastMove: i32) -> f32 {
         //Check win for AI turn
         let mut moves = Vec::new();
-        //let mut out = "".to_owned();
         for i in 0..BOARD_SIZE.1 {
             if !board.is_column_full(i as usize) {
-                //out += "non-full column\n";
                 let board = board.clone();
                 //This will always make a MoveCheck where the "team" is self.team if currMove%2 == 0 and the opposite team if currMove%2 == 1
                 //Assumes only two teams, 1 and 2
@@ -121,10 +121,8 @@ impl AI {
                 //If currMove is not last move, recurse on subsequent moves from the current moveCheck
                 } else if currMove < lastMove {
                     moves.push(self.find_win_probability(moveCheck.board, currMove+1, lastMove));
-                    //out += "pushed move\n";
                 //Base case - this is the last move, so just return current probability of win for this moveCheck relative to self.team
                 } else {
-                    //out += "finised move\n";
                     moves.push(moveCheck.get_win_probability(self.team));
                 }
             }
@@ -132,6 +130,8 @@ impl AI {
         //Edge case - no moves to make, return 0 probability (can't win)
         if moves.len() == 0 {
             0f32
+        } else if moves.contains((&((currMove % 2) as f32))) {
+            (currMove % 2) as f32
         //Otherwise, return average of all possibilities
         } else {
             moves.iter().sum::<f32>()/(moves.len() as f32)
@@ -200,6 +200,28 @@ mod ai_tests {
     mod AI {
         use super::*;
         use connect4::ai::AI;
+
+        mod pick_optimal_move { 
+            use super::*;
+
+            #[test]
+            fn should_return_first_winning_move() {
+                let data = vec![vec![0,0,0,0,0,0],
+                                vec![0,0,0,0,0,0],
+                                vec![1,0,0,0,0,0],
+                                vec![1,0,0,0,0,0],
+                                vec![1,0,0,0,0,0],
+                                vec![0,0,0,0,0,0],
+                                vec![0,0,0,0,0,0]];
+                let mut board = create_test_board(data);
+                let testAI = AI::new(1,1);
+                //Should prioritize col 1 over col 5 even though both win
+                assert_eq!(testAI.pick_optimal_move(board.clone()), 1i32);
+                //Insert enemy token to block col 1, now col 5 should be found
+                board.insert(1, 2, MyColor::White);
+                assert_eq!(testAI.pick_optimal_move(board.clone()), 5i32);
+            }
+        }
 
         mod find_win_probability { 
             use super::*;

@@ -61,6 +61,7 @@ struct GameState {
 
 impl event::EventHandler for GameState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        self.frames += 1; //"Timer"
         if self.main_screen_is_active {
             //Only allow buttons to be active if previous options selected
             for i in 0..self.buttons.len() {
@@ -85,7 +86,7 @@ impl event::EventHandler for GameState {
                     return Ok(());
                 } 
                 //Create new connect4 state
-                self.connect4_state = connect4::core::GameState::new(_ctx, players_index);
+                self.connect4_state = connect4::core::GameState::new(_ctx, 2-players_index);
                 //Change windows size for connect4
                 graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(connect4::core::SCREEN_SIZE.0, connect4::core::SCREEN_SIZE.1))?;
                 graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, connect4::core::SCREEN_SIZE.0+10.0, connect4::core::SCREEN_SIZE.1+10.0))?;
