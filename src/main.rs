@@ -32,7 +32,6 @@ impl fmt::Display for GameLoaded {
         let text = match self {
             GameLoaded::NONE => "None",
             GameLoaded::CONNECT4 => "Connect 4",
-            _ => panic!("Unknown GameLoaded type")
         };
         write!(f, "{}", text)
     }
@@ -175,13 +174,13 @@ impl event::EventHandler for GameState {
                 //Change windows size for main menu
                 let result = graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1));
                 match result {
-                    Ok(v) => (),
+                    Ok(_) => (),
                     Err(e) => (println!("Error drawing button: {:?}", e)),
                 };
-                
+
                 let result = graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, SCREEN_SIZE.0+10.0, SCREEN_SIZE.1+10.0));
                 match result {
-                    Ok(v) => (),
+                    Ok(_) => (),
                     Err(e) => (println!("Error drawing button: {:?}", e)),
                 };
             }
@@ -205,7 +204,7 @@ impl GameState {
             for j in 0..self.buttons[i].len() {
                 let result = self.buttons[i][j].draw(ctx);
                 match result {
-                    Ok(v) => (),
+                    Ok(_) => (),
                     Err(e) => (println!("Error drawing button: {:?}", e)),
                 };
             }
@@ -264,7 +263,7 @@ impl GameState {
         }
         //Create buttons for games based on max dimensions so they are equal size
         for i in 0..games.len() {
-            let mut title_outline = self.buttons[0][0].outline;  
+            let mut title_outline;  
             if i == 0 {
                 title_outline = self.buttons[0][0].outline;            
             } else {
@@ -283,7 +282,7 @@ impl GameState {
         }
         //PLAYER NUMBERS (buttons[1])
         for i in 0..3 {
-            let mut title_outline = self.buttons[0][0].outline;  
+            let mut title_outline;  
             if i == 0 {
                 title_outline = self.buttons[0][1].outline;            
             } else {
