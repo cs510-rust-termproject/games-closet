@@ -392,7 +392,7 @@ impl Board {
         let directions = vec![(1, 0), (1, 1), (0, 1), (-1, 1)];
         for dir in directions {
             let a = self.get_run_in_direction(start, GridPosition::new(dir.0, dir.1), team)-1;
-            let b = self.get_run_in_direction(start, GridPosition::new(-1*dir.0, -1*dir.1), team)-1;
+            let b = self.get_run_in_direction(start, GridPosition::new(-dir.0, -dir.1), team)-1;
             if a >= 0 {
                 output[a as usize] += 1;
             }
