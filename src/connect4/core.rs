@@ -57,15 +57,14 @@ pub enum MyColor {
 }
 
 impl MyColor {
-    pub fn get_draw_color(&self) -> ggez::graphics::Color {
-        let circ_color = match self {
+    pub fn get_draw_color(self) -> ggez::graphics::Color {
+        match self {
             MyColor::White => graphics::WHITE,
             MyColor::Blue => graphics::Color::from_rgba(0,0,255,255),
             MyColor::Red => graphics::Color::from_rgba(255,0,0,255),
             MyColor::Green => graphics::Color::from_rgba(0,255,0,255),
             MyColor::Brown => graphics::Color::from_rgba(205,133,63,255),
-        };
-        circ_color
+        }
     }
 }
 
@@ -373,14 +372,12 @@ impl Board {
         }
         //If the potential of the run is not 4 or more, return 0 because it is not a viable run
         if potential_len < 4 {
-            return 0i32;
+            0i32
         //Otherwise, return the minimum of the run_len and 4 (if no spaces) or 3 (if one space used)
+        } else if dir_spaces_used > 0 {
+            run_len.min(3)
         } else {
-            if dir_spaces_used > 0 {
-                run_len.min(3)
-            } else {
-                run_len.min(4)
-            }
+            run_len.min(4)
         }
     }
 
@@ -438,12 +435,10 @@ impl TurnIndicator {
             } else {
                 text = graphics::Text::new((format!("Player {} wins!", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
             }
+        } else if self.team == 0 {
+            text = graphics::Text::new(("Paused", graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
         } else {
-            if self.team == 0 {
-                text = graphics::Text::new(("Paused", graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
-            } else {
-                text = graphics::Text::new((format!("Player {}'s turn", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
-            }
+            text = graphics::Text::new((format!("Player {}'s turn", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
         }
 
         let dim = &text.dimensions(ctx);

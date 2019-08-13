@@ -39,11 +39,10 @@ impl fmt::Display for GameLoaded {
 
 impl From<String> for GameLoaded {
     fn from(text: String) -> Self {
-        let val = match text.as_str() {
+        match text.as_str() {
             "Connect 4" => GameLoaded::CONNECT4,
             _ => GameLoaded::NONE
-        };
-        val
+        }
     }
 }
 
@@ -160,30 +159,28 @@ impl event::EventHandler for GameState {
                     }
                 }
             }
-        } else {
-            if self.connect4_state.mouse_button_up_event(_ctx, _button, _x, _y) {
-                self.main_screen_is_active = true;
+        } else if self.connect4_state.mouse_button_up_event(_ctx, _button, _x, _y) {
+            self.main_screen_is_active = true;
 
-                //Need to reset button selection, otherwise it only "resets" connect4
-                for i in 1..self.buttons.len() {
-                    for j in 0..self.buttons[i].len() {
-                        self.buttons[i][j].selected = false;
-                        self.buttons_available = 1;
-                    }
+            //Need to reset button selection, otherwise it only "resets" connect4
+            for i in 1..self.buttons.len() {
+                for j in 0..self.buttons[i].len() {
+                    self.buttons[i][j].selected = false;
+                    self.buttons_available = 1;
                 }
-                //Change windows size for main menu
-                let result = graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1));
-                match result {
-                    Ok(_) => (),
-                    Err(e) => (println!("Error drawing button: {:?}", e)),
-                };
-
-                let result = graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, SCREEN_SIZE.0+10.0, SCREEN_SIZE.1+10.0));
-                match result {
-                    Ok(_) => (),
-                    Err(e) => (println!("Error drawing button: {:?}", e)),
-                };
             }
+            //Change windows size for main menu
+            let result = graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1));
+            match result {
+                Ok(_) => (),
+                Err(e) => (println!("Error drawing button: {:?}", e)),
+            };
+
+            let result = graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, SCREEN_SIZE.0+10.0, SCREEN_SIZE.1+10.0));
+            match result {
+                Ok(_) => (),
+                Err(e) => (println!("Error drawing button: {:?}", e)),
+            };
         }
     }
 
