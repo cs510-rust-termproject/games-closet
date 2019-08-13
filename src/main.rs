@@ -13,12 +13,10 @@ mod connect4;
 use std::fmt;
 use ggez::event;
 use ggez::graphics;
-use ggez::input::mouse;
 use ggez::input::mouse::MouseButton;
-use ggez::mint::Point2;
 use ggez::{Context, GameResult};
 use connect4::core::MyColor;
-use connect4::button::{BUTTON_FONT_SIZE, BUTTON_PADDING, BUTTON_SPACING, Button};
+use connect4::button::{BUTTON_PADDING, BUTTON_SPACING, Button};
 
 const SCREEN_SIZE: (f32, f32) = (910.0, 500.0); //Note - this is hard coded based on the known title sizes and should be adjusted if titles change
 
@@ -54,7 +52,7 @@ struct GameState {
     frames: usize,
     buttons: Vec<Vec<Button>>,
     buttons_available: usize,
-    gameLoaded: GameLoaded,
+    game_loaded: GameLoaded,
     connect4_state: connect4::core::GameState,
     main_screen_is_active: bool,
 }
@@ -75,7 +73,7 @@ impl event::EventHandler for GameState {
             if self.buttons[self.buttons.len()-1][0].selected {
                 let game_index = self.is_button_in_column_selected(1);
                 if game_index >= 0 {
-                    self.gameLoaded = GameLoaded::from(self.buttons[1][game_index as usize].text.contents());
+                    self.game_loaded = GameLoaded::from(self.buttons[1][game_index as usize].text.contents());
                 } else {
                     println!("No game loaded to start!");
                     return Ok(());
@@ -175,8 +173,17 @@ impl event::EventHandler for GameState {
                     }
                 }
                 //Change windows size for main menu
-                graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1));
-                graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, SCREEN_SIZE.0+10.0, SCREEN_SIZE.1+10.0));
+                let result = graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1));
+                match result {
+                    Ok(v) => (),
+                    Err(e) => (println!("Error drawing button: {:?}", e)),
+                };
+                
+                let result = graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, SCREEN_SIZE.0+10.0, SCREEN_SIZE.1+10.0));
+                match result {
+                    Ok(v) => (),
+                    Err(e) => (println!("Error drawing button: {:?}", e)),
+                };
             }
         }
     }
@@ -187,7 +194,7 @@ impl event::EventHandler for GameState {
 impl GameState {
     fn new(ctx: &mut Context) -> GameResult<GameState> {
         //Font should be set to a param
-        let mut s = GameState { frames: 0, buttons: Vec::<Vec::<Button>>::new(), buttons_available:1, gameLoaded: GameLoaded::NONE, connect4_state: connect4::core::GameState::new(ctx, 0), main_screen_is_active: true, };
+        let mut s = GameState { frames: 0, buttons: Vec::<Vec::<Button>>::new(), buttons_available:1, game_loaded: GameLoaded::NONE, connect4_state: connect4::core::GameState::new(ctx, 0), main_screen_is_active: true, };
         s.create_buttons(ctx);
         Ok(s)
     }
@@ -196,14 +203,18 @@ impl GameState {
     fn draw_buttons(&mut self, ctx: &mut Context) {
         for i in 0..self.buttons.len() {
             for j in 0..self.buttons[i].len() {
-                self.buttons[i][j].draw(ctx);
+                let result = self.buttons[i][j].draw(ctx);
+                match result {
+                    Ok(v) => (),
+                    Err(e) => (println!("Error drawing button: {:?}", e)),
+                };
             }
         }
     }
 
     //Method to determine if a button in a menu column is selected. Returns index of a highlighted button or -1 if none is highlighted
     fn is_button_in_column_selected(&self, col: usize) -> i32 {
-        if col < 0 || col > self.buttons.len() {
+        if col > self.buttons.len() {
             println!("Error: Cannot check button column {}", col);
         } else {
             for j in 0..self.buttons[col].len() {
