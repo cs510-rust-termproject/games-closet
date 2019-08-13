@@ -17,7 +17,7 @@ impl MoveCheck {
         let mut new_board = board.clone();
         let runs = new_board.get_runs_from_point(GridPosition::new(move_col, new_board.get_column_height(move_col as usize) as i32), team);
         new_board.insert(move_col, team, MyColor::White);
-        MoveCheck { team: team, board: new_board, runs: runs }
+        MoveCheck { team, board: new_board, runs }
     }
 
     fn has_end_result(&self) -> bool {
@@ -81,7 +81,7 @@ pub struct AI {
 
 impl AI {
     pub fn new(team: i32, difficulty: i32) -> Self {
-        AI { team: team, difficulty: difficulty, last_move_frame: -1 }
+        AI { team, difficulty, last_move_frame: -1 }
     }
 
     pub fn pick_optimal_move(&self, board: Board) -> i32 {
@@ -128,7 +128,7 @@ impl AI {
             }
         }
         //Edge case - no moves to make, return 0 probability (can't win)
-        if moves.len() == 0 {
+        if moves.is_empty() {
             0f32
         } else if moves.contains(&((curr_move % 2) as f32)) {
             (curr_move % 2) as f32

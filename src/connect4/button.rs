@@ -25,7 +25,7 @@ pub struct Button {
 
 impl Button {
     pub fn new(text: graphics::Text, dim: graphics::Rect) -> Button {
-        Button { text: text, 
+        Button { text, 
                  outline: dim, 
                  background_color: MyColor::Red,
                  active: true, 
