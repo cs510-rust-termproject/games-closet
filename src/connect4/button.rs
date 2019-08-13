@@ -23,6 +23,7 @@ pub struct Button {
     highlighted_color: MyColor
 }
 
+/// Struct used for creating buttons used in the main menu and connect 4 game
 impl Button {
     pub fn new(text: graphics::Text, dim: graphics::Rect) -> Button {
         Button { text, 

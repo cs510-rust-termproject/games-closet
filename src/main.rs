@@ -26,7 +26,7 @@ enum GameLoaded {
     CONNECT4,
 }
 
-//To_string implementation, found from https://doc.rust-lang.org/rust-by-example/conversion/string.html
+//To_string implementation, adapted from https://doc.rust-lang.org/rust-by-example/conversion/string.html
 impl fmt::Display for GameLoaded {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let text = match self {
