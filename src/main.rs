@@ -263,12 +263,7 @@ impl GameState {
         }
         //Create buttons for games based on max dimensions so they are equal size
         for i in 0..games.len() {
-            let mut title_outline;  
-            if i == 0 {
-                title_outline = self.buttons[0][0].outline;            
-            } else {
-                title_outline = self.buttons[1][i-1].outline;
-            }
+            let mut title_outline = if i == 0 { self.buttons[0][0].outline } else { self.buttons[1][i-1].outline };
             let button_text = graphics::Text::new((games[0].to_string(), graphics::Font::default(), 48f32));
             let x_offset = (title_outline.w - (2.0*BUTTON_PADDING.0 + max_dim.0 as f32))/2.0;
             let mut button = Button::new(button_text,
@@ -282,12 +277,7 @@ impl GameState {
         }
         //PLAYER NUMBERS (buttons[1])
         for i in 0..3 {
-            let mut title_outline;  
-            if i == 0 {
-                title_outline = self.buttons[0][1].outline;            
-            } else {
-                title_outline = self.buttons[2][i-1].outline;
-            }         
+            let mut title_outline = if i == 0 { self.buttons[0][1].outline } else { self.buttons[2][i-1].outline };      
             let button_text = graphics::Text::new((i.to_string(), graphics::Font::default(), 48f32));
             let text_dim = (button_text.width(ctx), button_text.height(ctx));
             let x_offset = (title_outline.w - (2.0*BUTTON_PADDING.0 + text_dim.0 as f32))/2.0;
