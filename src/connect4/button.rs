@@ -6,7 +6,6 @@ extern crate ggez;
 
 use ggez::graphics;
 use ggez::input::mouse;
-use ggez::input::mouse::MouseButton;
 use ggez::mint::Point2;
 use ggez::{Context, GameResult};
 use super::core::MyColor;

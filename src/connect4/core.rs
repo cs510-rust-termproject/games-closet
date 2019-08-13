@@ -4,12 +4,12 @@
 // distribution of this software for license terms.
 extern crate ggez;
 
-use ggez::{event, graphics, Context, GameResult};
+use ggez::{graphics, Context, GameResult};
 use ggez::mint::Point2;
 use ggez::input::mouse;
 use ggez::input::mouse::MouseButton;
 use connect4::ai::AI;
-use connect4::button::{BUTTON_PADDING, BUTTON_SPACING, Button};
+use connect4::button::{Button};
 
 /// Constant definition for the connect4 board size: 6x7 cells, row x column
 pub const BOARD_SIZE: (i32, i32) = (6, 7);
@@ -54,7 +54,6 @@ pub enum MyColor {
     Red,
     Green,
     Brown,
-    Black,
 }
 
 impl MyColor {
@@ -65,7 +64,6 @@ impl MyColor {
             MyColor::Red => graphics::Color::from_rgba(255,0,0,255),
             MyColor::Green => graphics::Color::from_rgba(0,255,0,255),
             MyColor::Brown => graphics::Color::from_rgba(205,133,63,255),
-            MyColor::Black => graphics::BLACK,
         };
         circ_color
     }
@@ -433,7 +431,7 @@ impl TurnIndicator {
     }
 
     fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-        let mut text: graphics::Text;
+        let text: graphics::Text;
         if self.gameover {
             if self.team == 0 {
                 text = graphics::Text::new(("Game Draw!", graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
