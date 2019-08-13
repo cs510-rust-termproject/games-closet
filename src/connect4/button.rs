@@ -13,7 +13,6 @@ use super::core::MyColor;
 
 pub const BUTTON_PADDING: (f32, f32) =  (10.0, 10.0);
 pub const BUTTON_SPACING: (f32, f32) = (50.0, 50.0);
-pub const BUTTON_FONT_SIZE: f32 = 36f32;
 
 pub struct Button {
     pub text: graphics::Text,
@@ -55,10 +54,6 @@ impl Button {
             //println!("{},{}  {},{}", self.outline.x, self.outline.y, self.outline.x - text_offset.0, self.outline.y - text_offset.1);
         }
         Ok(())
-    }
-
-    pub fn set_active(&mut self, a: bool) {
-        self.active = a;
     }
 
     pub fn set_colors(&mut self, bg_color: MyColor, hl_color: MyColor) {
