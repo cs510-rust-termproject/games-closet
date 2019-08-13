@@ -60,7 +60,7 @@ impl Button {
         self.highlighted_color = hl_color;
     }
 
-    pub fn is_button_under_mouse(&mut self, ctx: &mut Context) -> bool {
+    pub fn as_button_under_mouse(&mut self, ctx: &mut Context) -> bool {
         let mouse_loc = mouse::position(ctx);
         if self.active && self.outline.contains(mouse_loc)  {
             self.highlighted = true;

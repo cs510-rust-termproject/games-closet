@@ -627,16 +627,16 @@ impl GameState {
                 println!("Mouse moved to col {}", self.highlighted_column);
             }
         }
-        self.reset_button.is_button_under_mouse(_ctx);
-        self.main_menu_button.is_button_under_mouse(_ctx);
+        self.reset_button.as_button_under_mouse(_ctx);
+        self.main_menu_button.as_button_under_mouse(_ctx);
     }
 
     pub fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
         if !self.mouse_disabled {
             self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
         }
-        self.reset_button.is_button_under_mouse(_ctx);
-        self.main_menu_button.is_button_under_mouse(_ctx);
+        self.reset_button.as_button_under_mouse(_ctx);
+        self.main_menu_button.as_button_under_mouse(_ctx);
     }
 
     //Todo: If mouse_motion_event is enabled, this will always drop the token (i.e. not click away to undo move). Undetermined if this is desired or not
@@ -666,7 +666,7 @@ impl GameState {
             } 
         }
 
-        if self.reset_button.is_button_under_mouse(_ctx) {
+        if self.reset_button.as_button_under_mouse(_ctx) {
             println!("Reset button pressed; Board reset");
             self.board.reset();
             self.turn_indicator.reset();
@@ -675,7 +675,7 @@ impl GameState {
             self.mouse_disabled = false;
         }
 
-        if self.main_menu_button.is_button_under_mouse(_ctx) {
+        if self.main_menu_button.as_button_under_mouse(_ctx) {
             println!("Main Menu Button pressed; Main Menu should pop up");
             true
         } else {
