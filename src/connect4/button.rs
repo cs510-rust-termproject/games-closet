@@ -37,10 +37,7 @@ impl Button {
 
     pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
         if self.active {
-            let mut draw_color = self.background_color.get_draw_color();
-            if self.selected || self.highlighted {
-                draw_color = self.highlighted_color.get_draw_color();
-            }
+            let draw_color = if self.selected || self.highlighted { self.highlighted_color.get_draw_color() } else { self.background_color.get_draw_color() };
             let textbox = graphics::Mesh::new_rectangle(
                 ctx, 
                 graphics::DrawMode::fill(),             
