@@ -91,7 +91,7 @@ impl event::EventHandler for GameState {
                 graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(connect4::core::SCREEN_SIZE.0, connect4::core::SCREEN_SIZE.1))?;
                 graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, connect4::core::SCREEN_SIZE.0+10.0, connect4::core::SCREEN_SIZE.1+10.0))?;
                 self.main_screen_is_active = false;
-                self.connect4_state.turnIndicator.change_team(1);
+                self.connect4_state.turn_indicator.change_team(1);
             }
         } else {
             self.connect4_state.update(_ctx)?;
@@ -229,9 +229,9 @@ impl GameState {
                            graphics::Text::new(("Start Game", graphics::Font::default(), 48f32))];
         let mut loc = BUTTON_SPACING.0;
         for title in &titles {
-            let buttonText =  graphics::Text::new((title.contents(), graphics::Font::default(), 48f32));
-            let buttonOutline = graphics::Rect::new(loc, BUTTON_SPACING.1, 2.0*BUTTON_PADDING.0 + buttonText.width(ctx) as f32, 2.0*BUTTON_PADDING.1 + buttonText.height(ctx) as f32);
-            let mut button = Button::new(buttonText, buttonOutline);
+            let button_text =  graphics::Text::new((title.contents(), graphics::Font::default(), 48f32));
+            let button_outline = graphics::Rect::new(loc, BUTTON_SPACING.1, 2.0*BUTTON_PADDING.0 + button_text.width(ctx) as f32, 2.0*BUTTON_PADDING.1 + button_text.height(ctx) as f32);
+            let mut button = Button::new(button_text, button_outline);
             if button.text.contents() != "Start Game" {
                 button.set_colors(MyColor::Red, MyColor::Red);
                 self.buttons[0].push(button);
@@ -241,51 +241,51 @@ impl GameState {
                 self.buttons[3].push(button);
             }
             
-            loc = loc + buttonOutline.w + BUTTON_SPACING.0;
+            loc = loc + button_outline.w + BUTTON_SPACING.0;
         }
         //GAME SELECTION BUTTONS (buttons[1])
-        let mut maxDim = (0, 0);
+        let mut max_dim = (0, 0);
         //Identify max length for text for all games
         for game in &games {
-            let buttonText = graphics::Text::new((game.to_string(), graphics::Font::default(), 48f32));
-            maxDim.0 = maxDim.0.max(buttonText.width(ctx));
-            maxDim.1 = maxDim.1.max(buttonText.height(ctx));
+            let button_text = graphics::Text::new((game.to_string(), graphics::Font::default(), 48f32));
+            max_dim.0 = max_dim.0.max(button_text.width(ctx));
+            max_dim.1 = max_dim.1.max(button_text.height(ctx));
         }
         //Create buttons for games based on max dimensions so they are equal size
         for i in 0..games.len() {
-            let mut titleOutline = self.buttons[0][0].outline;  
+            let mut title_outline = self.buttons[0][0].outline;  
             if i == 0 {
-                titleOutline = self.buttons[0][0].outline;            
+                title_outline = self.buttons[0][0].outline;            
             } else {
-                titleOutline = self.buttons[1][i-1].outline;
+                title_outline = self.buttons[1][i-1].outline;
             }
-            let buttonText = graphics::Text::new((games[0].to_string(), graphics::Font::default(), 48f32));
-            let X_OFFSET = (titleOutline.w - (2.0*BUTTON_PADDING.0 + maxDim.0 as f32))/2.0;
-            let mut button = Button::new(buttonText,
-                                             graphics::Rect::new(titleOutline.x + X_OFFSET, 
-                                                                 titleOutline.y + titleOutline.h + BUTTON_SPACING.1,
-                                                                 2.0*BUTTON_PADDING.0 + maxDim.0 as f32, 
-                                                                 2.0*BUTTON_PADDING.1 +maxDim.1 as f32)
+            let button_text = graphics::Text::new((games[0].to_string(), graphics::Font::default(), 48f32));
+            let x_offset = (title_outline.w - (2.0*BUTTON_PADDING.0 + max_dim.0 as f32))/2.0;
+            let mut button = Button::new(button_text,
+                                             graphics::Rect::new(title_outline.x + x_offset, 
+                                                                 title_outline.y + title_outline.h + BUTTON_SPACING.1,
+                                                                 2.0*BUTTON_PADDING.0 + max_dim.0 as f32, 
+                                                                 2.0*BUTTON_PADDING.1 +max_dim.1 as f32)
                                             );
             button.set_colors(MyColor::Blue, MyColor::Green);
             self.buttons[1].push(button);
         }
         //PLAYER NUMBERS (buttons[1])
         for i in 0..3 {
-            let mut titleOutline = self.buttons[0][0].outline;  
+            let mut title_outline = self.buttons[0][0].outline;  
             if i == 0 {
-                titleOutline = self.buttons[0][1].outline;            
+                title_outline = self.buttons[0][1].outline;            
             } else {
-                titleOutline = self.buttons[2][i-1].outline;
+                title_outline = self.buttons[2][i-1].outline;
             }         
-            let buttonText = graphics::Text::new((i.to_string(), graphics::Font::default(), 48f32));
-            let textDim = (buttonText.width(ctx), buttonText.height(ctx));
-            let X_OFFSET = (titleOutline.w - (2.0*BUTTON_PADDING.0 + textDim.0 as f32))/2.0;
-            let mut button = Button::new(buttonText,
-                                         graphics::Rect::new(titleOutline.x + X_OFFSET, 
-                                                             titleOutline.y + titleOutline.h + BUTTON_SPACING.1,
-                                                             2.0*BUTTON_PADDING.0 + textDim.0 as f32, 
-                                                             2.0*BUTTON_PADDING.1 + textDim.1 as f32)
+            let button_text = graphics::Text::new((i.to_string(), graphics::Font::default(), 48f32));
+            let text_dim = (button_text.width(ctx), button_text.height(ctx));
+            let x_offset = (title_outline.w - (2.0*BUTTON_PADDING.0 + text_dim.0 as f32))/2.0;
+            let mut button = Button::new(button_text,
+                                         graphics::Rect::new(title_outline.x + x_offset, 
+                                                             title_outline.y + title_outline.h + BUTTON_SPACING.1,
+                                                             2.0*BUTTON_PADDING.0 + text_dim.0 as f32, 
+                                                             2.0*BUTTON_PADDING.1 + text_dim.1 as f32)
                                          );
             button.set_colors(MyColor::Blue, MyColor::Green);
             self.buttons[2].push(button);

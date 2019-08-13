@@ -49,10 +49,10 @@ impl Button {
                 self.outline,
                 draw_color,
             )?;
-            let TEXT_OFFSET = ((self.outline.w - self.text.width(ctx) as f32)/2.0, (self.outline.h - self.text.height(ctx) as f32)/2.0);
+            let text_offset = ((self.outline.w - self.text.width(ctx) as f32)/2.0, (self.outline.h - self.text.height(ctx) as f32)/2.0);
             graphics::draw(ctx, &textbox, (Point2 {x: 0.0, y: 0.0},))?;
-            graphics::draw(ctx, &self.text, (Point2 {x: self.outline.x + TEXT_OFFSET.0, y: self.outline.y + TEXT_OFFSET.1},))?;
-            //println!("{},{}  {},{}", self.outline.x, self.outline.y, self.outline.x - TEXT_OFFSET.0, self.outline.y - TEXT_OFFSET.1);
+            graphics::draw(ctx, &self.text, (Point2 {x: self.outline.x + text_offset.0, y: self.outline.y + text_offset.1},))?;
+            //println!("{},{}  {},{}", self.outline.x, self.outline.y, self.outline.x - text_offset.0, self.outline.y - text_offset.1);
         }
         Ok(())
     }

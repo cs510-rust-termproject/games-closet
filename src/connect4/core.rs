@@ -489,7 +489,7 @@ pub struct GameState {
     ai_players: Vec<AI>,
     pub board: Board,
     team_colors: Vec<MyColor>,
-    pub turnIndicator: TurnIndicator,
+    pub turn_indicator: TurnIndicator,
     pub highlighted_column: i32,
     mouse_disabled: bool,
     gameover: bool,
@@ -522,7 +522,7 @@ impl GameState {
             ai_players: bots,
             board: Board::new(board_pos.into()),
             team_colors: vec![MyColor::White, MyColor::Red, MyColor::Blue],
-            turnIndicator: TurnIndicator::new(),
+            turn_indicator: TurnIndicator::new(),
             highlighted_column: -1,
             mouse_disabled: false,
             gameover: false,
@@ -550,13 +550,13 @@ impl GameState {
                 println!("All columns full; Game Draw!");
                 self.gameover = true;
                 self.mouse_disabled = true;
-                self.turnIndicator.change_team(0);
-                self.turnIndicator.game_ends();
+                self.turn_indicator.change_team(0);
+                self.turn_indicator.game_ends();
             }
             //Check for AI actions
             let mut bot_active = false;
             for ai in &mut self.ai_players {
-                if ai.team == self.turnIndicator.team {
+                if ai.team == self.turn_indicator.team {
                     bot_active = true;
                     self.mouse_disabled = true;
                     //Check if move selection process has started
@@ -565,17 +565,17 @@ impl GameState {
                         ai.last_move_frame = self.frames as i32;
                     //If enough frames have passed, make move
                     } else if self.frames > (ai.last_move_frame + 100) as usize {
-                        if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
+                        if self.board.insert(self.highlighted_column, self.turn_indicator.team, self.team_colors[self.turn_indicator.team as usize]) {
                             println!("AI Player {} drops token in col {}", ai.team, self.highlighted_column);
                             
                             //game state check
                             let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), ai.team);
                             if runs[3] > 0 {    //Four Connected - Proceed to Gameover - Win/Loss state
-                                println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
+                                println!("4 Connected for player {}; Game ends", self.turn_indicator.team);
                                 self.gameover = true;
-                                self.turnIndicator.game_ends();
+                                self.turn_indicator.game_ends();
                             } else {
-                                self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
+                                self.turn_indicator.team = self.turn_indicator.team%2+1; //Change to other team's turn
                             }
                         }
                         //Reset check for a move so next move can be made
@@ -602,7 +602,7 @@ impl GameState {
                 },
                 BOARD_DISC_RADIUS as f32,
                 2.0,
-                self.team_colors[self.turnIndicator.team as usize].get_draw_color()
+                self.team_colors[self.turn_indicator.team as usize].get_draw_color()
             );
         }
         //Draw Board
@@ -610,7 +610,7 @@ impl GameState {
         graphics::draw(ctx, &mesh, (Point2 {x: 0.0, y: 0.0},))?;
 
         //Draw turn indicator
-        self.turnIndicator.draw(ctx)?;
+        self.turn_indicator.draw(ctx)?;
 
         //Draw reset button
         self.reset_button.draw(ctx)?;
@@ -648,18 +648,18 @@ impl GameState {
             self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
             if was_highlighted == self.highlighted_column && self.highlighted_column >= 0 {
                 self.mouse_disabled = true;
-                if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
-                    println!("Team {} drops token in col {}", self.turnIndicator.team, self.highlighted_column);
+                if self.board.insert(self.highlighted_column, self.turn_indicator.team, self.team_colors[self.turn_indicator.team as usize]) {
+                    println!("Team {} drops token in col {}", self.turn_indicator.team, self.highlighted_column);
                     
                     //game state check
-                    let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), self.turnIndicator.team);
+                    let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), self.turn_indicator.team);
                     println!("runs: {:?}", runs);
                     if runs[3] > 0 {    //Four Connected - Proceed to Gameover - Win/Loss state
-                        println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
+                        println!("4 Connected for player {}; Game ends", self.turn_indicator.team);
                         self.gameover = true;
-                        self.turnIndicator.game_ends();
+                        self.turn_indicator.game_ends();
                     } else {
-                        self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
+                        self.turn_indicator.team = self.turn_indicator.team%2+1; //Change to other team's turn
                     }
                 }
                 if !self.gameover {
@@ -671,8 +671,8 @@ impl GameState {
         if self.reset_button.is_button_under_mouse(_ctx) {
             println!("Reset button pressed; Board reset");
             self.board.reset();
-            self.turnIndicator.reset();
-            self.turnIndicator.change_team(1);
+            self.turn_indicator.reset();
+            self.turn_indicator.change_team(1);
             self.gameover = false;
             self.mouse_disabled = false;
         }
@@ -694,7 +694,7 @@ pub fn main(num_players: i32) -> GameResult {
         .build()?;
 
     let state = &mut GameState::new(ctx, num_players)?;
-    state.turnIndicator.change_team(1); //Start with player 1
+    state.turn_indicator.change_team(1); //Start with player 1
     event::run(ctx, events_loop, state)
 }
 */
