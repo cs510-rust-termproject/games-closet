@@ -3,7 +3,7 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
-use connect4::core::{GridPosition, Board, GameState, BOARD_SIZE, MyColor};
+use connect4::core::{GridPosition, Board, BOARD_SIZE, MyColor};
 use std::cmp::Ordering;
 
 pub struct MoveCheck {
@@ -130,7 +130,7 @@ impl AI {
         //Edge case - no moves to make, return 0 probability (can't win)
         if moves.len() == 0 {
             0f32
-        } else if moves.contains((&((curr_move % 2) as f32))) {
+        } else if moves.contains(&((curr_move % 2) as f32)) {
             (curr_move % 2) as f32
         //Otherwise, return average of all possibilities
         } else {
