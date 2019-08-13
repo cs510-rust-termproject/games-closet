@@ -166,7 +166,7 @@ mod ai_tests {
         output
     }
 
-    mod MoveCheck {
+    mod move_check {
         use super::*;
         use connect4::ai::MoveCheck;
 
@@ -197,7 +197,7 @@ mod ai_tests {
         }
     }
 
-    mod AI {
+    mod ai {
         use super::*;
         use connect4::ai::AI;
 
@@ -214,12 +214,12 @@ mod ai_tests {
                                 vec![0,0,0,0,0,0],
                                 vec![0,0,0,0,0,0]];
                 let mut board = create_test_board(data);
-                let testAI = AI::new(1,1);
+                let test_ai = AI::new(1,1);
                 //Should prioritize col 1 over col 5 even though both win
-                assert_eq!(testAI.pick_optimal_move(board.clone()), 1i32);
+                assert_eq!(test_ai.pick_optimal_move(board.clone()), 1i32);
                 //Insert enemy token to block col 1, now col 5 should be found
                 board.insert(1, 2, MyColor::White);
-                assert_eq!(testAI.pick_optimal_move(board.clone()), 5i32);
+                assert_eq!(test_ai.pick_optimal_move(board.clone()), 5i32);
             }
         }
 
@@ -236,9 +236,9 @@ mod ai_tests {
                                 vec![1,1,1,1,1,1],
                                 vec![1,1,1,1,1,1]];
                 let board = create_test_board(data);
-                let testAI = AI::new(1,1);
-                assert_eq!(testAI.find_win_probability(board.clone(), 0, 3), 0.0);
-                assert_eq!(testAI.find_win_probability(board.clone(), 1, 3), 0.0);
+                let test_ai = AI::new(1,1);
+                assert_eq!(test_ai.find_win_probability(board.clone(), 0, 3), 0.0);
+                assert_eq!(test_ai.find_win_probability(board.clone(), 1, 3), 0.0);
             }
 
             #[test]
@@ -251,9 +251,9 @@ mod ai_tests {
                                 vec![1,1,2,1,2,1],
                                 vec![1,1,2,2,2,0]];
                 let board = create_test_board(data);
-                let testAI = AI::new(1,1);
-                assert_eq!(testAI.find_win_probability(board.clone(), 0, 3), 1.0);
-                assert_eq!(testAI.find_win_probability(board.clone(), 1, 3), 0.0);
+                let test_ai = AI::new(1,1);
+                assert_eq!(test_ai.find_win_probability(board.clone(), 0, 3), 1.0);
+                assert_eq!(test_ai.find_win_probability(board.clone(), 1, 3), 0.0);
             }
 
             #[test]
@@ -267,8 +267,8 @@ mod ai_tests {
                                 vec![1,1,0,0,0,0]]; //Prob of 1/2 (here (one run of length 3))
                                 //Average prob is thus 1/4
                 let board = create_test_board(data);
-                let testAI = AI::new(1,1);
-                assert_eq!(testAI.find_win_probability(board.clone(), 0, 0), 0.25);
+                let test_ai = AI::new(1,1);
+                assert_eq!(test_ai.find_win_probability(board.clone(), 0, 0), 0.25);
             }
         }
     }

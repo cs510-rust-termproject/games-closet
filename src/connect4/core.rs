@@ -703,7 +703,7 @@ pub fn main(num_players: i32) -> GameResult {
 #[cfg(test)]
 mod core_tests {
     use super::*;
-    mod Board {
+    mod board {
         use super::*;
         use connect4::core::Board;
 
