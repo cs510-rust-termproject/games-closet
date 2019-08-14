@@ -132,7 +132,7 @@ impl event::EventHandler for GameState {
         if self.main_screen_is_active {
             for i in 0..self.buttons.len() {
                 for j in 0..self.buttons[i].len() {
-                    self.buttons[i][j].is_button_under_mouse(_ctx);
+                    self.buttons[i][j].check_button_under_mouse(_ctx);
                 }
             }
         } else {
@@ -146,7 +146,7 @@ impl event::EventHandler for GameState {
             //Check whether buttons are highlighted, updated states accordingly
             for i in 0..self.buttons.len() {
                 for j in 0..self.buttons[i].len() {
-                    self.buttons[i][j].is_button_under_mouse(_ctx);
+                    self.buttons[i][j].check_button_under_mouse(_ctx);
                 }
             }
         } else {
@@ -160,7 +160,7 @@ impl event::EventHandler for GameState {
             //Check whether buttons are highlighted (set by clicking down). If one is highlighted and mouse still on it, button is "clicked"
             for i in 1..self.buttons.len() {
                 for j in 0..self.buttons[i].len() {
-                    if self.buttons[i][j].highlighted && self.buttons[i][j].is_button_under_mouse(_ctx) {
+                    if self.buttons[i][j].highlighted && self.buttons[i][j].check_button_under_mouse(_ctx) {
                         let highlighted = self.is_button_in_column_selected(i);
                         if highlighted < 0 {
                             self.buttons[i][j].selected = true;

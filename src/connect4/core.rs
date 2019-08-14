@@ -693,8 +693,8 @@ impl GameState {
                 println!("Mouse moved to col {}", self.highlighted_column);
             }
         }
-        self.reset_button.is_button_under_mouse(_ctx);
-        self.main_menu_button.is_button_under_mouse(_ctx);
+        self.reset_button.check_button_under_mouse(_ctx);
+        self.main_menu_button.check_button_under_mouse(_ctx);
     }
 
     ///Method active whenever the mouse is pressed down (if mouse is not intentionally disabled). Changes the highlighted_column
@@ -703,8 +703,8 @@ impl GameState {
         if !self.mouse_disabled {
             self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
         }
-        self.reset_button.is_button_under_mouse(_ctx);
-        self.main_menu_button.is_button_under_mouse(_ctx);
+        self.reset_button.check_button_under_mouse(_ctx);
+        self.main_menu_button.check_button_under_mouse(_ctx);
     }
 
     ///Method active whenever thea pressed mouse button is released (if mouse is not intentionally disabled). Changes the highlighted_column
@@ -735,7 +735,7 @@ impl GameState {
             } 
         }
         //Check reset button
-        if self.reset_button.is_button_under_mouse(_ctx) {
+        if self.reset_button.check_button_under_mouse(_ctx) {
             println!("Reset button pressed; Board reset");
             self.board.reset();
             self.turn_indicator.reset();
@@ -744,7 +744,7 @@ impl GameState {
             self.mouse_disabled = false;
         }
         //Check main menu button
-        if self.main_menu_button.is_button_under_mouse(_ctx) {
+        if self.main_menu_button.check_button_under_mouse(_ctx) {
             println!("Main Menu Button pressed; Main Menu should pop up");
             true
         } else {

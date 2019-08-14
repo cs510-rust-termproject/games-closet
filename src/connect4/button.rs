@@ -74,7 +74,7 @@ impl Button {
     }
 
     ///Method to determine if mouse if hovering over button, updates highlighted state accordingly
-    pub fn is_button_under_mouse(&mut self, ctx: &mut Context) -> bool {
+    pub fn check_button_under_mouse(&mut self, ctx: &mut Context) -> bool {
         let mouse_loc = mouse::position(ctx);
         if self.active && self.outline.contains(mouse_loc)  {
             self.highlighted = true;

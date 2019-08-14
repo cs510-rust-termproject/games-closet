@@ -138,7 +138,7 @@ impl AI {
     ///
     pub fn pick_optimal_move(&self, board: Board) -> i32 {
         let mut best_move = -1;
-        let mut best_prob = 0.0;
+        let mut best_prob = 0f32;
         for i in 0..BOARD_SIZE.1 {
             //For each valid move, create a MoveCheck to evaluate immediate move options
             if !board.is_column_full(i as usize) {
@@ -149,7 +149,7 @@ impl AI {
                 } else {
                     //Otherwise, find win probability after move has been made to see if it is better than other possible moves
                     let curr_prob = self.find_win_probability(next_move.board, 1, self.difficulty);
-                    if curr_prob == 1.0 {
+                    if curr_prob == 1f32 {
                         return i;
                     } else if curr_prob >= best_prob {
                         best_prob = curr_prob;
