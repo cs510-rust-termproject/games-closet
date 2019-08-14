@@ -13,12 +13,10 @@ mod connect4;
 use std::fmt;
 use ggez::event;
 use ggez::graphics;
-use ggez::input::mouse;
 use ggez::input::mouse::MouseButton;
-use ggez::mint::Point2;
 use ggez::{Context, GameResult};
 use connect4::core::MyColor;
-use connect4::button::{BUTTON_FONT_SIZE, BUTTON_PADDING, BUTTON_SPACING, Button};
+use connect4::button::{BUTTON_PADDING, BUTTON_SPACING, Button};
 
 const SCREEN_SIZE: (f32, f32) = (910.0, 500.0); //Note - this is hard coded based on the known title sizes and should be adjusted if titles change
 
@@ -28,13 +26,12 @@ enum GameLoaded {
     CONNECT4,
 }
 
-//To_string implementation, found from https://doc.rust-lang.org/rust-by-example/conversion/string.html
+//To_string implementation, adapted from https://doc.rust-lang.org/rust-by-example/conversion/string.html
 impl fmt::Display for GameLoaded {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let text = match self {
             GameLoaded::NONE => "None",
             GameLoaded::CONNECT4 => "Connect 4",
-            _ => panic!("Unknown GameLoaded type")
         };
         write!(f, "{}", text)
     }
@@ -42,11 +39,10 @@ impl fmt::Display for GameLoaded {
 
 impl From<String> for GameLoaded {
     fn from(text: String) -> Self {
-        let val = match text.as_str() {
+        match text.as_str() {
             "Connect 4" => GameLoaded::CONNECT4,
             _ => GameLoaded::NONE
-        };
-        val
+        }
     }
 }
 
@@ -54,7 +50,7 @@ struct GameState {
     frames: usize,
     buttons: Vec<Vec<Button>>,
     buttons_available: usize,
-    gameLoaded: GameLoaded,
+    game_loaded: GameLoaded,
     connect4_state: connect4::core::GameState,
     main_screen_is_active: bool,
 }
@@ -75,7 +71,7 @@ impl event::EventHandler for GameState {
             if self.buttons[self.buttons.len()-1][0].selected {
                 let game_index = self.is_button_in_column_selected(1);
                 if game_index >= 0 {
-                    self.gameLoaded = GameLoaded::from(self.buttons[1][game_index as usize].text.contents());
+                    self.game_loaded = GameLoaded::from(self.buttons[1][game_index as usize].text.contents());
                 } else {
                     println!("No game loaded to start!");
                     return Ok(());
@@ -91,7 +87,7 @@ impl event::EventHandler for GameState {
                 graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(connect4::core::SCREEN_SIZE.0, connect4::core::SCREEN_SIZE.1))?;
                 graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, connect4::core::SCREEN_SIZE.0+10.0, connect4::core::SCREEN_SIZE.1+10.0))?;
                 self.main_screen_is_active = false;
-                self.connect4_state.turnIndicator.change_team(1);
+                self.connect4_state.turn_indicator.change_team(1);
             }
         } else {
             self.connect4_state.update(_ctx)?;
@@ -118,7 +114,7 @@ impl event::EventHandler for GameState {
         if self.main_screen_is_active {
             for i in 0..self.buttons.len() {
                 for j in 0..self.buttons[i].len() {
-                    self.buttons[i][j].is_button_under_mouse(_ctx);
+                    self.buttons[i][j].as_button_under_mouse(_ctx);
                 }
             }
         } else {
@@ -131,7 +127,7 @@ impl event::EventHandler for GameState {
             //Check whether buttons are highlighted, updated states accordingly
             for i in 0..self.buttons.len() {
                 for j in 0..self.buttons[i].len() {
-                    self.buttons[i][j].is_button_under_mouse(_ctx);
+                    self.buttons[i][j].as_button_under_mouse(_ctx);
                     //println!("Button '{}' highlighted: {}", self.buttons[i][j].text.contents(), self.buttons[i][j].highlighted);
                 }
             }
@@ -145,7 +141,7 @@ impl event::EventHandler for GameState {
             //Check whether buttons are highlighted (set by clicking down). If one is highlighted and mouse still on it, button is "clicked"
             for i in 1..self.buttons.len() {
                 for j in 0..self.buttons[i].len() {
-                    if self.buttons[i][j].highlighted && self.buttons[i][j].is_button_under_mouse(_ctx) {
+                    if self.buttons[i][j].highlighted && self.buttons[i][j].as_button_under_mouse(_ctx) {
                         let highlighted = self.is_button_in_column_selected(i);
                         if highlighted < 0 {
                             self.buttons[i][j].selected = true;
@@ -163,21 +159,28 @@ impl event::EventHandler for GameState {
                     }
                 }
             }
-        } else {
-            if self.connect4_state.mouse_button_up_event(_ctx, _button, _x, _y) {
-                self.main_screen_is_active = true;
+        } else if self.connect4_state.mouse_button_up_event(_ctx, _button, _x, _y) {
+            self.main_screen_is_active = true;
 
-                //Need to reset button selection, otherwise it only "resets" connect4
-                for i in 1..self.buttons.len() {
-                    for j in 0..self.buttons[i].len() {
-                        self.buttons[i][j].selected = false;
-                        self.buttons_available = 1;
-                    }
+            //Need to reset button selection, otherwise it only "resets" connect4
+            for i in 1..self.buttons.len() {
+                for j in 0..self.buttons[i].len() {
+                    self.buttons[i][j].selected = false;
+                    self.buttons_available = 1;
                 }
-                //Change windows size for main menu
-                graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1));
-                graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, SCREEN_SIZE.0+10.0, SCREEN_SIZE.1+10.0));
             }
+            //Change windows size for main menu
+            let result = graphics::set_mode(_ctx, ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1));
+            match result {
+                Ok(_) => (),
+                Err(e) => (println!("Error drawing button: {:?}", e)),
+            };
+
+            let result = graphics::set_screen_coordinates(_ctx, graphics::Rect::new(0.0, 0.0, SCREEN_SIZE.0+10.0, SCREEN_SIZE.1+10.0));
+            match result {
+                Ok(_) => (),
+                Err(e) => (println!("Error drawing button: {:?}", e)),
+            };
         }
     }
 
@@ -187,7 +190,7 @@ impl event::EventHandler for GameState {
 impl GameState {
     fn new(ctx: &mut Context) -> GameResult<GameState> {
         //Font should be set to a param
-        let mut s = GameState { frames: 0, buttons: Vec::<Vec::<Button>>::new(), buttons_available:1, gameLoaded: GameLoaded::NONE, connect4_state: connect4::core::GameState::new(ctx, 0), main_screen_is_active: true, };
+        let mut s = GameState { frames: 0, buttons: Vec::<Vec::<Button>>::new(), buttons_available:1, game_loaded: GameLoaded::NONE, connect4_state: connect4::core::GameState::new(ctx, 0), main_screen_is_active: true, };
         s.create_buttons(ctx);
         Ok(s)
     }
@@ -196,14 +199,18 @@ impl GameState {
     fn draw_buttons(&mut self, ctx: &mut Context) {
         for i in 0..self.buttons.len() {
             for j in 0..self.buttons[i].len() {
-                self.buttons[i][j].draw(ctx);
+                let result = self.buttons[i][j].draw(ctx);
+                match result {
+                    Ok(_) => (),
+                    Err(e) => (println!("Error drawing button: {:?}", e)),
+                };
             }
         }
     }
 
     //Method to determine if a button in a menu column is selected. Returns index of a highlighted button or -1 if none is highlighted
     fn is_button_in_column_selected(&self, col: usize) -> i32 {
-        if col < 0 || col > self.buttons.len() {
+        if col > self.buttons.len() {
             println!("Error: Cannot check button column {}", col);
         } else {
             for j in 0..self.buttons[col].len() {
@@ -229,9 +236,9 @@ impl GameState {
                            graphics::Text::new(("Start Game", graphics::Font::default(), 48f32))];
         let mut loc = BUTTON_SPACING.0;
         for title in &titles {
-            let buttonText =  graphics::Text::new((title.contents(), graphics::Font::default(), 48f32));
-            let buttonOutline = graphics::Rect::new(loc, BUTTON_SPACING.1, 2.0*BUTTON_PADDING.0 + buttonText.width(ctx) as f32, 2.0*BUTTON_PADDING.1 + buttonText.height(ctx) as f32);
-            let mut button = Button::new(buttonText, buttonOutline);
+            let button_text =  graphics::Text::new((title.contents(), graphics::Font::default(), 48f32));
+            let button_outline = graphics::Rect::new(loc, BUTTON_SPACING.1, 2.0*BUTTON_PADDING.0 + button_text.width(ctx) as f32, 2.0*BUTTON_PADDING.1 + button_text.height(ctx) as f32);
+            let mut button = Button::new(button_text, button_outline);
             if button.text.contents() != "Start Game" {
                 button.set_colors(MyColor::Red, MyColor::Red);
                 self.buttons[0].push(button);
@@ -241,51 +248,41 @@ impl GameState {
                 self.buttons[3].push(button);
             }
             
-            loc = loc + buttonOutline.w + BUTTON_SPACING.0;
+            loc = loc + button_outline.w + BUTTON_SPACING.0;
         }
         //GAME SELECTION BUTTONS (buttons[1])
-        let mut maxDim = (0, 0);
+        let mut max_dim = (0, 0);
         //Identify max length for text for all games
         for game in &games {
-            let buttonText = graphics::Text::new((game.to_string(), graphics::Font::default(), 48f32));
-            maxDim.0 = maxDim.0.max(buttonText.width(ctx));
-            maxDim.1 = maxDim.1.max(buttonText.height(ctx));
+            let button_text = graphics::Text::new((game.to_string(), graphics::Font::default(), 48f32));
+            max_dim.0 = max_dim.0.max(button_text.width(ctx));
+            max_dim.1 = max_dim.1.max(button_text.height(ctx));
         }
         //Create buttons for games based on max dimensions so they are equal size
         for i in 0..games.len() {
-            let mut titleOutline = self.buttons[0][0].outline;  
-            if i == 0 {
-                titleOutline = self.buttons[0][0].outline;            
-            } else {
-                titleOutline = self.buttons[1][i-1].outline;
-            }
-            let buttonText = graphics::Text::new((games[0].to_string(), graphics::Font::default(), 48f32));
-            let X_OFFSET = (titleOutline.w - (2.0*BUTTON_PADDING.0 + maxDim.0 as f32))/2.0;
-            let mut button = Button::new(buttonText,
-                                             graphics::Rect::new(titleOutline.x + X_OFFSET, 
-                                                                 titleOutline.y + titleOutline.h + BUTTON_SPACING.1,
-                                                                 2.0*BUTTON_PADDING.0 + maxDim.0 as f32, 
-                                                                 2.0*BUTTON_PADDING.1 +maxDim.1 as f32)
+            let mut title_outline = if i == 0 { self.buttons[0][0].outline } else { self.buttons[1][i-1].outline };
+            let button_text = graphics::Text::new((games[0].to_string(), graphics::Font::default(), 48f32));
+            let x_offset = (title_outline.w - (2.0*BUTTON_PADDING.0 + max_dim.0 as f32))/2.0;
+            let mut button = Button::new(button_text,
+                                             graphics::Rect::new(title_outline.x + x_offset, 
+                                                                 title_outline.y + title_outline.h + BUTTON_SPACING.1,
+                                                                 2.0*BUTTON_PADDING.0 + max_dim.0 as f32, 
+                                                                 2.0*BUTTON_PADDING.1 +max_dim.1 as f32)
                                             );
             button.set_colors(MyColor::Blue, MyColor::Green);
             self.buttons[1].push(button);
         }
         //PLAYER NUMBERS (buttons[1])
         for i in 0..3 {
-            let mut titleOutline = self.buttons[0][0].outline;  
-            if i == 0 {
-                titleOutline = self.buttons[0][1].outline;            
-            } else {
-                titleOutline = self.buttons[2][i-1].outline;
-            }         
-            let buttonText = graphics::Text::new((i.to_string(), graphics::Font::default(), 48f32));
-            let textDim = (buttonText.width(ctx), buttonText.height(ctx));
-            let X_OFFSET = (titleOutline.w - (2.0*BUTTON_PADDING.0 + textDim.0 as f32))/2.0;
-            let mut button = Button::new(buttonText,
-                                         graphics::Rect::new(titleOutline.x + X_OFFSET, 
-                                                             titleOutline.y + titleOutline.h + BUTTON_SPACING.1,
-                                                             2.0*BUTTON_PADDING.0 + textDim.0 as f32, 
-                                                             2.0*BUTTON_PADDING.1 + textDim.1 as f32)
+            let mut title_outline = if i == 0 { self.buttons[0][1].outline } else { self.buttons[2][i-1].outline };      
+            let button_text = graphics::Text::new((i.to_string(), graphics::Font::default(), 48f32));
+            let text_dim = (button_text.width(ctx), button_text.height(ctx));
+            let x_offset = (title_outline.w - (2.0*BUTTON_PADDING.0 + text_dim.0 as f32))/2.0;
+            let mut button = Button::new(button_text,
+                                         graphics::Rect::new(title_outline.x + x_offset, 
+                                                             title_outline.y + title_outline.h + BUTTON_SPACING.1,
+                                                             2.0*BUTTON_PADDING.0 + text_dim.0 as f32, 
+                                                             2.0*BUTTON_PADDING.1 + text_dim.1 as f32)
                                          );
             button.set_colors(MyColor::Blue, MyColor::Green);
             self.buttons[2].push(button);

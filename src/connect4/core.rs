@@ -4,23 +4,23 @@
 // distribution of this software for license terms.
 extern crate ggez;
 
-use ggez::{event, graphics, Context, GameResult};
+use ggez::{graphics, Context, GameResult};
 use ggez::mint::Point2;
 use ggez::input::mouse;
 use ggez::input::mouse::MouseButton;
 use connect4::ai::AI;
-use connect4::button::{BUTTON_PADDING, BUTTON_SPACING, Button};
+use connect4::button::{Button};
 
-/// Constant definition for the connect4 board size: 6x7 cells, row x column
+/// Constant definition for the connect4 board size: 6x7 cells, row x column.
 pub const BOARD_SIZE: (i32, i32) = (6, 7);
 
-/// Constant definition for the pixel size for each square tiles: 32x32 pixels
+/// Constant definition for the pixel size for each square tiles: 32x32 pixels.
 const BOARD_CELL_SIZE: (i32, i32) = (64, 64);
 
-/// Constant definition for the radius of each playing disc: 14px
+/// Constant definition for the radius of each playing disc: 14px.
 const BOARD_DISC_RADIUS: i32 = 28;
 
-/// Constant definition for the border size of the board
+/// Constant definition for the border size of the board.
 const BOARD_BORDER_SIZE: i32 = 32;
 
 const BOARD_TOTAL_SIZE: (f32, f32) = (
@@ -28,7 +28,7 @@ const BOARD_TOTAL_SIZE: (f32, f32) = (
         ((BOARD_SIZE.0 * BOARD_CELL_SIZE.0) + BOARD_BORDER_SIZE) as f32,
 );
 
-// Testing dynamic Turn Indicator Box size, further decrement by width / 2
+// Testing dynamic Turn Indicator Box size, further decrement by width / 2.
 const TURN_INDICATOR_POS_OFFSET: (i32, i32) = (10 + (BOARD_TOTAL_SIZE.0 / 2.0) as i32, 10);
 
 const TURN_INDICATOR_BOX_SIZE_OFFSET: (i32, i32) = (16, 32);
@@ -41,12 +41,13 @@ const BOARD_POS_OFFSET: (i32, i32) = (10, 10 + COLUMN_SELECTION_INDICATOR_POS_OF
 
 const RESET_BUTTON_OFFSET: (i32, i32) = (10, 10);
 
-/// Constant definition for the screen size of the game window
+/// Constant definition for the screen size of the game window.
 pub const SCREEN_SIZE: (f32, f32) = (
     BOARD_TOTAL_SIZE.0 + (BOARD_POS_OFFSET.0 as f32),
     BOARD_TOTAL_SIZE.1 + (BOARD_POS_OFFSET.1 as f32),
 );
 
+/// Enums defining some color presets. Call `get_draw_color()` to get the ggez graphics Color object equivalent.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum MyColor {
     White,
@@ -54,26 +55,21 @@ pub enum MyColor {
     Red,
     Green,
     Brown,
-    Black,
 }
 
 impl MyColor {
-    pub fn get_draw_color(&self) -> ggez::graphics::Color {
-        let circ_color = match self {
+    pub fn get_draw_color(self) -> ggez::graphics::Color {
+        match self {
             MyColor::White => graphics::WHITE,
             MyColor::Blue => graphics::Color::from_rgba(0,0,255,255),
             MyColor::Red => graphics::Color::from_rgba(255,0,0,255),
             MyColor::Green => graphics::Color::from_rgba(0,255,0,255),
             MyColor::Brown => graphics::Color::from_rgba(205,133,63,255),
-            MyColor::Black => graphics::BLACK,
-        };
-        circ_color
+        }
     }
 }
 
-//use MyColor::*;
-
-/// Struct determines position on the board
+/// Struct representing position on the board.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct GridPosition {
     pub x: i32,
@@ -81,44 +77,23 @@ pub struct GridPosition {
 }
 
 impl GridPosition {
-    /// Constructor for GridPosition
+    /// Constructor for GridPosition.
     pub fn new(x: i32, y: i32) -> Self {
         GridPosition {x, y}
     }
 }
 
-/// From trait converting i32 tuples to GridPosition
+/// From trait converting i32 tuples to GridPosition.
 impl From<(i32, i32)> for GridPosition {
     fn from(pos: (i32, i32)) -> Self {
         GridPosition {x: pos.0, y: pos.1}
     }
 }
 
-/*
-/// From trait converting GridPosition to Rect; Used for drawing the Cells of the board
-impl From<GridPosition> for graphics::Rect {
-    fn from(pos: GridPosition) -> Self {
-        graphics::Rect::new_i32(
-            pos.x * BOARD_CELL_SIZE.0,
-            pos.y * BOARD_CELL_SIZE.1,
-            BOARD_CELL_SIZE.0,
-            BOARD_CELL_SIZE.1,
-        )
-    }
-}
-
-/// From trait converting GridPosition to Point2; Used for drawing playing discs on the board
-impl From<GridPosition> for Point2<f32> {
-    fn from(pos: GridPosition) -> Self {
-        Point2 {
-            x: pos.x as f32,
-            y: pos.y as f32
-        }
-    }
-}
-*/
-
-/// A single cell of the board
+/// Struct representing the abstraction of a single cell of the board.
+/// `position` property stores the value of the cell's location on the board.
+/// `team` and `color` property represents the team and color of the 'disc' in the Cell.
+/// team = 0 and color = MyColor::White represents an empty cell.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Cell {
     position: GridPosition,
@@ -127,6 +102,8 @@ struct Cell {
 }
 
 impl Cell {
+    /// Constructor for Cell, GridPosition is cell's location on the board.
+    /// team and color is set as default empty cell values of 0 and MyColor::White.
     pub fn new(pos: GridPosition) -> Self {
         Cell {
             position: pos,
@@ -136,6 +113,7 @@ impl Cell {
     }
 
     //Using example from 03_drawing.rs
+    /// Create and add the mesh representation of the cell to the MeshBuilder passed in.
     fn draw <'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
         let circ_color = self.color.get_draw_color();
         //println!("Building mesh\n");
@@ -173,13 +151,16 @@ impl Cell {
         mb
     }
 
+    /// Changes the team and color of the cell.
     fn fill(&mut self, team: i32, color: MyColor) {
         self.team = team;
         self.color = color;
     }
 }
 
-//Abstraction of a column of cells for connect 4 board
+/// Struct representing the abstraction of a Column of cells on the Board.
+/// `cells` stores the Vector of cells in the column.
+/// `height` value corresponds with the number/ height of filled cells.
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct Column {
     position: GridPosition,
@@ -198,7 +179,7 @@ impl Column {
         }
     }
 
-    // Calls every Cell's draw fn
+    /// Calls every cell's draw function.
     fn draw<'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
         for cell in &self.cells {
             cell.draw(mb);
@@ -207,15 +188,17 @@ impl Column {
         mb
     }
 
+    /// Returns height of column.
     pub fn get_height(&self) -> usize {
         self.height
     }
 
+    /// Checks whether the column is full.
     pub fn is_full(&self) -> bool {
         self.height >= BOARD_SIZE.0 as usize
     }
 
-    //Method to determine if a location (presumed to be the mouse) is inside the column or one cell above (for drop)
+    /// Method to determine if a location (presumed to be the mouse) is inside the column or one cell above (for drop)
     pub fn is_mouse_over(&self, loc: Point2<f32>) -> bool {
         graphics::Rect::new(self.position.x as f32, (self.position.y-(BOARD_CELL_SIZE.1*4/3)) as f32, BOARD_CELL_SIZE.0 as f32, 8.0*BOARD_CELL_SIZE.1 as f32).contains(loc)
     }
@@ -233,6 +216,8 @@ impl Column {
         }
     }
 
+    /// Resets the column.
+    /// Changes the cells in the column to their 'empty' state.
     pub fn reset(&mut self) {
         self.height = 0;
         for cell in &mut self.cells {
@@ -241,6 +226,9 @@ impl Column {
     }
 }
 
+/// Struct representing the abstraction of the game's Board (connect4).
+/// `position` is used to determine the top-left position of the Board in the game window.
+/// `columns` stores the Vector of cells in the column.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Board {
     position: GridPosition,
@@ -255,7 +243,8 @@ impl Board {
         }
     }
 
-    // Builds Board's rect mesh and columns
+    /// Builds Board's rect mesh and add it to the `MeshBuilder` passed in and calls column's draw function.
+    /// Returns the MeshBuilder (with added board and columns meshes).
     fn draw <'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
         mb.rectangle(
             graphics::DrawMode::fill(), 
@@ -285,7 +274,7 @@ impl Board {
         mb
     }
 
-    //Helper method to get the index of the column that is under the mouse (loc), or -1 if no column is highlighted
+    /// Method to get the index of the column that is under the mouse (loc), or -1 if no column is highlighted
     pub fn get_highlighted_column(&self, loc: Point2<f32>) -> i32 {
         for i in 0..self.columns.len() {
             if self.columns[i].is_mouse_over(loc) {
@@ -375,14 +364,12 @@ impl Board {
         }
         //If the potential of the run is not 4 or more, return 0 because it is not a viable run
         if potential_len < 4 {
-            return 0i32;
+            0i32
         //Otherwise, return the minimum of the run_len and 4 (if no spaces) or 3 (if one space used)
+        } else if dir_spaces_used > 0 {
+            run_len.min(3)
         } else {
-            if dir_spaces_used > 0 {
-                run_len.min(3)
-            } else {
-                run_len.min(4)
-            }
+            run_len.min(4)
         }
     }
 
@@ -394,7 +381,7 @@ impl Board {
         let directions = vec![(1, 0), (1, 1), (0, 1), (-1, 1)];
         for dir in directions {
             let a = self.get_run_in_direction(start, GridPosition::new(dir.0, dir.1), team)-1;
-            let b = self.get_run_in_direction(start, GridPosition::new(-1*dir.0, -1*dir.1), team)-1;
+            let b = self.get_run_in_direction(start, GridPosition::new(-dir.0, -dir.1), team)-1;
             if a >= 0 {
                 output[a as usize] += 1;
             }
@@ -412,6 +399,7 @@ impl Board {
         self.columns[position as usize].insert(team, color)
     }
     
+    /// Calls the reset function of every columns in the Board.
     pub fn reset(&mut self) {
         for column in &mut self.columns {
             column.reset();
@@ -419,6 +407,7 @@ impl Board {
     }
 }
 
+/// Struct for the object that displays whose turn is it currently and the gameover win/ draw message.
 pub struct TurnIndicator {
     gameover: bool,
     team: i32,
@@ -432,20 +421,23 @@ impl TurnIndicator {
         }
     }
 
+    /// Draws the turn indicator onto the Context/ game window.
+    /// Text displayed depends on the state of the `gameover` and `team` property
+    /// team: 0 & gameover: false = Game Draw
+    /// team: 1 or 2 & gameover: true = Player 1 or 2 Wins!
+    /// team: 1 or 2 & gameover: false = Player 1 or 2's turn
     fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-        let mut text: graphics::Text;
+        let text: graphics::Text;
         if self.gameover {
             if self.team == 0 {
                 text = graphics::Text::new(("Game Draw!", graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
             } else {
                 text = graphics::Text::new((format!("Player {} wins!", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
             }
+        } else if self.team == 0 {
+            text = graphics::Text::new(("Paused", graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
         } else {
-            if self.team == 0 {
-                text = graphics::Text::new(("Paused", graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
-            } else {
-                text = graphics::Text::new((format!("Player {}'s turn", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
-            }
+            text = graphics::Text::new((format!("Player {}'s turn", self.team), graphics::Font::default(), TURN_INDICATOR_FONT_SIZE as f32));
         }
 
         let dim = &text.dimensions(ctx);
@@ -470,26 +462,30 @@ impl TurnIndicator {
         Ok(())
     }
 
+    /// Change the value of the team property of the turn indicator object.
     pub fn change_team(&mut self, team: i32) {
         self.team = team;
     }
 
+    /// Change the value of the gameover property of the turn indicator object.
     pub fn game_ends(&mut self) {
         self.gameover = true;
     }
 
+    /// Resets the values of the team and gameover property of the turn indicator object to 0 and false.
     pub fn reset(&mut self) {
         self.team = 0;
         self.gameover = false;
     }
 }
 
+/// Struct that contains the states for the connect 4 game
 pub struct GameState {
     frames: usize,
     ai_players: Vec<AI>,
     pub board: Board,
     team_colors: Vec<MyColor>,
-    pub turnIndicator: TurnIndicator,
+    pub turn_indicator: TurnIndicator,
     pub highlighted_column: i32,
     mouse_disabled: bool,
     gameover: bool,
@@ -522,7 +518,7 @@ impl GameState {
             ai_players: bots,
             board: Board::new(board_pos.into()),
             team_colors: vec![MyColor::White, MyColor::Red, MyColor::Blue],
-            turnIndicator: TurnIndicator::new(),
+            turn_indicator: TurnIndicator::new(),
             highlighted_column: -1,
             mouse_disabled: false,
             gameover: false,
@@ -550,13 +546,13 @@ impl GameState {
                 println!("All columns full; Game Draw!");
                 self.gameover = true;
                 self.mouse_disabled = true;
-                self.turnIndicator.change_team(0);
-                self.turnIndicator.game_ends();
+                self.turn_indicator.change_team(0);
+                self.turn_indicator.game_ends();
             }
             //Check for AI actions
             let mut bot_active = false;
             for ai in &mut self.ai_players {
-                if ai.team == self.turnIndicator.team {
+                if ai.team == self.turn_indicator.team {
                     bot_active = true;
                     self.mouse_disabled = true;
                     //Check if move selection process has started
@@ -565,17 +561,17 @@ impl GameState {
                         ai.last_move_frame = self.frames as i32;
                     //If enough frames have passed, make move
                     } else if self.frames > (ai.last_move_frame + 100) as usize {
-                        if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
+                        if self.board.insert(self.highlighted_column, self.turn_indicator.team, self.team_colors[self.turn_indicator.team as usize]) {
                             println!("AI Player {} drops token in col {}", ai.team, self.highlighted_column);
                             
                             //game state check
                             let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), ai.team);
                             if runs[3] > 0 {    //Four Connected - Proceed to Gameover - Win/Loss state
-                                println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
+                                println!("4 Connected for player {}; Game ends", self.turn_indicator.team);
                                 self.gameover = true;
-                                self.turnIndicator.game_ends();
+                                self.turn_indicator.game_ends();
                             } else {
-                                self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
+                                self.turn_indicator.team = self.turn_indicator.team%2+1; //Change to other team's turn
                             }
                         }
                         //Reset check for a move so next move can be made
@@ -602,7 +598,7 @@ impl GameState {
                 },
                 BOARD_DISC_RADIUS as f32,
                 2.0,
-                self.team_colors[self.turnIndicator.team as usize].get_draw_color()
+                self.team_colors[self.turn_indicator.team as usize].get_draw_color()
             );
         }
         //Draw Board
@@ -610,7 +606,7 @@ impl GameState {
         graphics::draw(ctx, &mesh, (Point2 {x: 0.0, y: 0.0},))?;
 
         //Draw turn indicator
-        self.turnIndicator.draw(ctx)?;
+        self.turn_indicator.draw(ctx)?;
 
         //Draw reset button
         self.reset_button.draw(ctx)?;
@@ -629,16 +625,16 @@ impl GameState {
                 println!("Mouse moved to col {}", self.highlighted_column);
             }
         }
-        self.reset_button.is_button_under_mouse(_ctx);
-        self.main_menu_button.is_button_under_mouse(_ctx);
+        self.reset_button.as_button_under_mouse(_ctx);
+        self.main_menu_button.as_button_under_mouse(_ctx);
     }
 
     pub fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
         if !self.mouse_disabled {
             self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
         }
-        self.reset_button.is_button_under_mouse(_ctx);
-        self.main_menu_button.is_button_under_mouse(_ctx);
+        self.reset_button.as_button_under_mouse(_ctx);
+        self.main_menu_button.as_button_under_mouse(_ctx);
     }
 
     //Todo: If mouse_motion_event is enabled, this will always drop the token (i.e. not click away to undo move). Undetermined if this is desired or not
@@ -648,18 +644,18 @@ impl GameState {
             self.highlighted_column = self.board.get_highlighted_column(mouse::position(_ctx));
             if was_highlighted == self.highlighted_column && self.highlighted_column >= 0 {
                 self.mouse_disabled = true;
-                if self.board.insert(self.highlighted_column, self.turnIndicator.team, self.team_colors[self.turnIndicator.team as usize]) {
-                    println!("Team {} drops token in col {}", self.turnIndicator.team, self.highlighted_column);
+                if self.board.insert(self.highlighted_column, self.turn_indicator.team, self.team_colors[self.turn_indicator.team as usize]) {
+                    println!("Team {} drops token in col {}", self.turn_indicator.team, self.highlighted_column);
                     
                     //game state check
-                    let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), self.turnIndicator.team);
+                    let runs = self.board.get_runs_from_point(GridPosition::new(self.highlighted_column, self.board.get_column_height(self.highlighted_column as usize) as i32 - 1), self.turn_indicator.team);
                     println!("runs: {:?}", runs);
                     if runs[3] > 0 {    //Four Connected - Proceed to Gameover - Win/Loss state
-                        println!("4 Connected for player {}; Game ends", self.turnIndicator.team);
+                        println!("4 Connected for player {}; Game ends", self.turn_indicator.team);
                         self.gameover = true;
-                        self.turnIndicator.game_ends();
+                        self.turn_indicator.game_ends();
                     } else {
-                        self.turnIndicator.team = self.turnIndicator.team%2+1; //Change to other team's turn
+                        self.turn_indicator.team = self.turn_indicator.team%2+1; //Change to other team's turn
                     }
                 }
                 if !self.gameover {
@@ -668,16 +664,16 @@ impl GameState {
             } 
         }
 
-        if self.reset_button.is_button_under_mouse(_ctx) {
+        if self.reset_button.as_button_under_mouse(_ctx) {
             println!("Reset button pressed; Board reset");
             self.board.reset();
-            self.turnIndicator.reset();
-            self.turnIndicator.change_team(1);
+            self.turn_indicator.reset();
+            self.turn_indicator.change_team(1);
             self.gameover = false;
             self.mouse_disabled = false;
         }
 
-        if self.main_menu_button.is_button_under_mouse(_ctx) {
+        if self.main_menu_button.as_button_under_mouse(_ctx) {
             println!("Main Menu Button pressed; Main Menu should pop up");
             true
         } else {
@@ -686,26 +682,10 @@ impl GameState {
     }
 }
 
-/*
-pub fn main(num_players: i32) -> GameResult {
-    let (ctx, events_loop) = &mut ggez::ContextBuilder::new("Connect4", "Lane Barton & Andre Mukhsia")
-        .window_setup(ggez::conf::WindowSetup::default().title("Game Closet - Connect 4"))
-        .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1))
-        .build()?;
-
-    let state = &mut GameState::new(ctx, num_players)?;
-    state.turnIndicator.change_team(1); //Start with player 1
-    event::run(ctx, events_loop, state)
-}
-*/
-
-
-
-
 #[cfg(test)]
 mod core_tests {
     use super::*;
-    mod Board {
+    mod board {
         use super::*;
         use connect4::core::Board;
 
