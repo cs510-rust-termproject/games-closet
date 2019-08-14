@@ -3,6 +3,6 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
-pub mod core;
 pub mod ai;
 pub mod button;
+pub mod core;
