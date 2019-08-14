@@ -197,7 +197,6 @@ impl Column {
     fn draw<'a>(&self, mb: &'a mut graphics::MeshBuilder) -> &'a mut graphics::MeshBuilder {
         for cell in &self.cells {
             cell.draw(mb);
-            //println!("Cell draw called\n");
         }
         mb
     }
@@ -320,9 +319,13 @@ impl Board {
 
     ///Method to get the team value (1 or 2) from a cell in col[x] and row[y]
     pub fn get_cell_team(&self, pos: GridPosition) -> i32 {
-        self.columns.get(pos.x as usize).unwrap()
-            .cells.get(pos.y as usize).unwrap()
-            .team
+        if self.on_board(pos) {
+            self.columns.get(pos.x as usize).unwrap()
+                .cells.get(pos.y as usize).unwrap()
+                .team
+        } else {
+            -1
+        }
     }
 
     
@@ -593,10 +596,7 @@ impl GameState {
 
     /// Update method - contains main game logic.
     pub fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        self.frames += 1; //"iming mechanism for bot moves
-        if self.frames % 1000 == 0 {
-            println!("Frames: {}", self.frames);
-        }
+        self.frames += 1; //Timing mechanism for bot moves
         if !self.gameover {
             //Draw state check
             let mut full_column = 0;
@@ -756,30 +756,80 @@ impl GameState {
 #[cfg(test)]
 mod core_tests {
     use super::*;
-    mod board {
-        use super::*;
-        use connect4::core::Board;
-
-        //Method to create a board state from a set of vectors, where 0 is empty and 1 or 2 team tokens
-        //Note that input is board[column][row], so if you want to add a team 1 token in column 4, row 0, then
-        //the board input should have board[4][0] = 1
-        fn create_test_board(board: Vec<Vec<i32>>) -> Board {
-            let mut output = Board::new(GridPosition{ x: 0, y:0 });
-            for i in 0..BOARD_SIZE.1 {
-                if (i as usize) < board.len() {
-                    let col = board.get(i as usize).unwrap();
-                    for j in 0..BOARD_SIZE.0 {
-                        if (j as usize) < col.len() {
-                            let val = *col.get(j as usize).unwrap();
-                            if val > 0 {
-                                output.insert(i, val, MyColor::White);
-                            }
+    //Method to create a board state from a set of vectors, where 0 is empty and 1 or 2 team tokens
+    //Note that input is board[column][row], so if you want to add a team 1 token in column 4, row 0, then
+    //the board input should have board[4][0] = 1
+    fn create_test_board(board: Vec<Vec<i32>>) -> Board {
+        let mut output = Board::new(GridPosition{ x: 0, y:0 });
+        for i in 0..BOARD_SIZE.1 {
+            if (i as usize) < board.len() {
+                let col = board.get(i as usize).unwrap();
+                for j in 0..BOARD_SIZE.0 {
+                    if (j as usize) < col.len() {
+                        let val = *col.get(j as usize).unwrap();
+                        if val > 0 {
+                            output.insert(i, val, MyColor::White);
                         }
                     }
                 }
             }
-            output
         }
+        output
+    }    
+
+    mod board {
+        use super::*;   
+
+        mod on_board {
+            use super::*;   
+
+            #[test]
+            fn should_handle_edge_cases() {
+                let board = create_test_board(vec![vec![]]);
+                assert_eq!(board.on_board(GridPosition::new(0, 0)), true);
+                assert_eq!(board.on_board(GridPosition::new(-1, 0)), false);
+                assert_eq!(board.on_board(GridPosition::new(0, -1)), false);
+                assert_eq!(board.on_board(GridPosition::new(6, 5)), true);
+                assert_eq!(board.on_board(GridPosition::new(7, 5)), false);
+                assert_eq!(board.on_board(GridPosition::new(6, 6)), false);
+            }
+        } 
+
+        mod get_cell_team {
+            use super::*; 
+
+            #[test]
+            fn should_return_error_val_if_not_on_board() {
+                let data = vec![vec![1,1,0,1,2,0],
+                                vec![1,2,2,1,2,2],
+                                vec![2,1,1,2,1,0],
+                                vec![2,1,1,1,0,0], 
+                                vec![0,0,0,0,0,0],
+                                vec![1,1,2,1,2,1],
+                                vec![1,1,2,2,2,0]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_cell_team(GridPosition::new(-1, 0)), -1);
+                assert_eq!(board.get_cell_team(GridPosition::new(0, 6)), -1);
+            }  
+
+            #[test]
+            fn should_handle_get_team_values() {
+                let data = vec![vec![1,1,1,1,2,0],
+                                vec![1,2,2,1,2,2],
+                                vec![2,1,1,2,1,0],
+                                vec![2,1,1,1,0,0], 
+                                vec![0,0,0,0,0,0],
+                                vec![1,1,2,1,2,1],
+                                vec![1,1,2,2,2,0]];
+                let board = create_test_board(data);
+                assert_eq!(board.get_cell_team(GridPosition::new(0, 0)), 1);
+                assert_eq!(board.get_cell_team(GridPosition::new(2, 0)), 2);
+                assert_eq!(board.get_cell_team(GridPosition::new(0, 5)), 0);
+                assert_eq!(board.get_cell_team(GridPosition::new(5, 5)), 1);
+                assert_eq!(board.get_cell_team(GridPosition::new(1, 3)), 1);
+                assert_eq!(board.get_cell_team(GridPosition::new(4, 0)), 0);
+            }
+        }   
 
         mod get_run_in_direction { 
             use super::*;

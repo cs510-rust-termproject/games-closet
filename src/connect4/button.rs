@@ -84,3 +84,5 @@ impl Button {
         self.highlighted
     }
 }
+
+//NOTE: Tests not included since testing requires usage of mouse and other UI features
