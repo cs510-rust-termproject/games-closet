@@ -18,6 +18,7 @@ use ggez::{Context, GameResult};
 use connect4::core::MyColor;
 use connect4::button::{BUTTON_PADDING, BUTTON_SPACING, Button};
 
+///Constant dimensions for screen
 const SCREEN_SIZE: (f32, f32) = (910.0, 500.0); //Note - this is hard coded based on the known title sizes and should be adjusted if titles change
 
 /// Enum representing which game is loaded
@@ -46,6 +47,23 @@ impl From<String> for GameLoaded {
     }
 }
 
+///
+/// A struct that contains the states for the main menu
+///
+/// # Fields
+/// * frames                = Integer counter for the number of times the update method is called; helps gauge time
+/// * buttons               = Vector of Vector of Buttons on the main menu screen, where buttons are classified as follows:
+///                               -buttons[0] represent titles for the menu and should not be highlighted/change state
+///                               -buttons[1] represent game options for the first column, "Select Game"
+///                               -buttons[2] represent options for the second column, "Players" (or number of human players)
+///                               -buttons[3] represents the third "column", the "Start Game" button
+/// * buttons_available     = Positive integer value representing how many of menu columns are to be displayed. For example, if this value is 2,
+///                           the the first two columns should both be displayed which the final "Start Game" column  should not be visible. This
+///                           value should never be less than 1 so titles and at least one set of options are displayed
+/// * game_loaded           = GameLoaded struct indicating what is loaded     
+/// * connect4_state        = GameState for a Connect4 game in `src/connect4/core.rs`. Used when Connect4 is being played      
+/// * main_screen_is_active = Boolean indicating if main menu is loaded or not       
+///
 struct GameState {
     frames: usize,
     buttons: Vec<Vec<Button>>,
@@ -56,6 +74,7 @@ struct GameState {
 }
 
 impl event::EventHandler for GameState {
+    ///Main update for menu - handles actions either for main menu or game being played
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         self.frames += 1; //"Timer"
         if self.main_screen_is_active {
@@ -96,12 +115,10 @@ impl event::EventHandler for GameState {
         Ok(())
     }
 
+    ///Method that draws all buttons on grid
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         if self.main_screen_is_active {
             graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
-
-            //Usage of Point2 from ggez example 04_snake.rs, line 354 (https://github.com/ggez/ggez/blob/master/examples/04_snake.rs)
-            //let dest_point = Point2 { x: 10.0, y: 10.0 };
             self.draw_buttons(ctx);
             graphics::present(ctx)?;
         } else {
@@ -110,11 +127,12 @@ impl event::EventHandler for GameState {
         Ok(())
     }
 
+    ///Method to update state of all buttons if mouse moves, either for main menu or active game
     fn mouse_motion_event(&mut self, _ctx: &mut Context, _x: f32, _y: f32, _dx: f32, _dy: f32) {
         if self.main_screen_is_active {
             for i in 0..self.buttons.len() {
                 for j in 0..self.buttons[i].len() {
-                    self.buttons[i][j].as_button_under_mouse(_ctx);
+                    self.buttons[i][j].is_button_under_mouse(_ctx);
                 }
             }
         } else {
@@ -122,13 +140,13 @@ impl event::EventHandler for GameState {
         }
     }
 
+    ///Method to update state of all buttons if mouse pressed down, either for main menu or active game
     fn mouse_button_down_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
         if self.main_screen_is_active {
             //Check whether buttons are highlighted, updated states accordingly
             for i in 0..self.buttons.len() {
                 for j in 0..self.buttons[i].len() {
-                    self.buttons[i][j].as_button_under_mouse(_ctx);
-                    //println!("Button '{}' highlighted: {}", self.buttons[i][j].text.contents(), self.buttons[i][j].highlighted);
+                    self.buttons[i][j].is_button_under_mouse(_ctx);
                 }
             }
         } else {
@@ -136,12 +154,13 @@ impl event::EventHandler for GameState {
         }
     }
 
+    ///Method to update state of all buttons if moves up from a pressed state, either for main menu or active game 
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, _button: MouseButton, _x: f32, _y: f32) {
         if self.main_screen_is_active {
             //Check whether buttons are highlighted (set by clicking down). If one is highlighted and mouse still on it, button is "clicked"
             for i in 1..self.buttons.len() {
                 for j in 0..self.buttons[i].len() {
-                    if self.buttons[i][j].highlighted && self.buttons[i][j].as_button_under_mouse(_ctx) {
+                    if self.buttons[i][j].highlighted && self.buttons[i][j].is_button_under_mouse(_ctx) {
                         let highlighted = self.is_button_in_column_selected(i);
                         if highlighted < 0 {
                             self.buttons[i][j].selected = true;
@@ -189,13 +208,12 @@ impl event::EventHandler for GameState {
 //Implementation based on structure in example from GGEZ repo (see https://github.com/ggez/ggez/blob/master/examples/02_hello_world.rs)
 impl GameState {
     fn new(ctx: &mut Context) -> GameResult<GameState> {
-        //Font should be set to a param
         let mut s = GameState { frames: 0, buttons: Vec::<Vec::<Button>>::new(), buttons_available:1, game_loaded: GameLoaded::NONE, connect4_state: connect4::core::GameState::new(ctx, 0), main_screen_is_active: true, };
         s.create_buttons(ctx);
         Ok(s)
     }
 
-    //Method to print organized list of buttons
+    ///Method to print organized list of buttons
     fn draw_buttons(&mut self, ctx: &mut Context) {
         for i in 0..self.buttons.len() {
             for j in 0..self.buttons[i].len() {
@@ -208,7 +226,7 @@ impl GameState {
         }
     }
 
-    //Method to determine if a button in a menu column is selected. Returns index of a highlighted button or -1 if none is highlighted
+    ///Method to determine if a button in a menu column is selected. Returns index of a highlighted button or -1 if none is highlighted
     fn is_button_in_column_selected(&self, col: usize) -> i32 {
         if col > self.buttons.len() {
             println!("Error: Cannot check button column {}", col);
@@ -222,7 +240,7 @@ impl GameState {
         -1
     }
 
-    //Function to initialize possible buttons
+    ///Function to initialize buttons vector for the main menu. Buttons are 
     fn create_buttons(&mut self, ctx: &mut Context) {
         //Apparently can't loop through enums, so have to manually add each game
         let games = vec![GameLoaded::CONNECT4];
@@ -272,7 +290,7 @@ impl GameState {
             button.set_colors(MyColor::Blue, MyColor::Green);
             self.buttons[1].push(button);
         }
-        //PLAYER NUMBERS (buttons[1])
+        //PLAYER NUMBERS (buttons[2])
         for i in 0..3 {
             let mut title_outline = if i == 0 { self.buttons[0][1].outline } else { self.buttons[2][i-1].outline };      
             let button_text = graphics::Text::new((i.to_string(), graphics::Font::default(), 48f32));
@@ -300,5 +318,4 @@ pub fn main() -> GameResult {
 
     let state = &mut GameState::new(ctx)?;
     event::run(ctx, event_loop, state)
-    //connect4::core::main()
 }

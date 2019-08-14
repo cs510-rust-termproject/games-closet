@@ -6,6 +6,17 @@
 use connect4::core::{GridPosition, Board, BOARD_SIZE, MyColor};
 use std::cmp::Ordering;
 
+///
+/// A struct representing a potential future move on a given board. Utilized by the AI struct to 
+/// determine future moves and win probabilities
+///
+/// # Fields
+/// * team  = Integer value (1-2) representing team that is making the move
+/// * board = Board object representing grid state after a move is made
+/// * run   = Array of runs for the given team from the location of the move for this object. runs[0] is # of runs
+///              of length 1, runs[1] is # of runs of length 2, etc. Runs are often duplicates (i.e. a contiguous run of 
+///              3 in the vertical direction is counted as both a run of 3 in the up and down direction)
+///
 pub struct MoveCheck {
     team: i32,
     board: Board,
@@ -13,6 +24,14 @@ pub struct MoveCheck {
 }
 
 impl MoveCheck {
+    ///
+    /// Method to initialize and return a MoveCheck object
+    ///
+    /// # Arguments
+    /// * board    = Board struct representing the state of the board prior to the move being made
+    /// * move_col = Index of column the disc is dropped in to make the move
+    /// * team     = Integer value represent the team number of the disc being placed for the move
+    ///
     fn new(board: Board, move_col: i32, team: i32) -> Self {
         let mut new_board = board.clone();
         let runs = new_board.get_runs_from_point(GridPosition::new(move_col, new_board.get_column_height(move_col as usize) as i32), team);
@@ -20,11 +39,20 @@ impl MoveCheck {
         MoveCheck { team, board: new_board, runs }
     }
 
+    ///
+    /// Method returning a boolean indicating if the move produces a run of 4 for the given team
+    ///
     fn has_end_result(&self) -> bool {
         self.runs[3] > 0
     }
 
-
+    ///
+    /// Method to return the win probability for a given team based on the current move. Does weighted probability
+    /// calculation using the number of runs of each length and produces a value between 1.0 and 0.0.
+    /// 
+    /// # Arguments
+    /// * team = Integer value (1 or 2) of team for which to calculate win probaility 
+    ///
     fn get_win_probability(&self, team: i32) -> f32 {
         let mut prob = 0f32;
         for i in 0..self.runs.len() {
@@ -73,6 +101,16 @@ impl PartialEq for MoveCheck {
 
 impl Eq for MoveCheck {}
 
+
+///
+/// A struct representing an AI or bot player for Connect4 which has methods to determine "ideal" moves
+///
+/// # Fields
+/// * team            = Integer value (1-2) representing team that is making the move
+/// * difficulty      = Integer value that determines how "smart" the AI is (i.e. how deep the recursive search for a move will go)
+/// * last_move_frame = Integer used to track when a determination of an ideal move has last been made. Should be set to -1 until move
+///                     is determined for a round, then reset once move is drawn and board state changes 
+///
 pub struct AI {
     pub team: i32,
     difficulty: i32,
@@ -80,19 +118,36 @@ pub struct AI {
 }
 
 impl AI {
+    ///
+    /// Method to initialize and return an AI object
+    ///
+    /// # Arguments
+    /// * team     = Integer value represent the team number of the disc being placed for the move
+    /// * difficulty      = Integer value that determines how "smart" the AI is (i.e. how deep the recursive search for a move will go)
+    ///
     pub fn new(team: i32, difficulty: i32) -> Self {
         AI { team, difficulty, last_move_frame: -1 }
     }
 
+    ///
+    /// Method to determine the "optimal" move based on aboard state. Returns an integer value represnting the column to place
+    /// the next disc
+    ///
+    /// # Arguments
+    /// * board    = Board struct representing the current state of the board
+    ///
     pub fn pick_optimal_move(&self, board: Board) -> i32 {
         let mut best_move = -1;
         let mut best_prob = 0.0;
         for i in 0..BOARD_SIZE.1 {
+            //For each valid move, create a MoveCheck to evaluate immediate move options
             if !board.is_column_full(i as usize) {
                 let next_move = MoveCheck::new(board.clone(), i, self.team);
+                //If move will win game, make move
                 if next_move.has_end_result() {
                     return i;
                 } else {
+                    //Otherwise, find win probability after move has been made to see if it is better than other possible moves
                     let curr_prob = self.find_win_probability(next_move.board, 1, self.difficulty);
                     if curr_prob == 1.0 {
                         return i;
@@ -106,8 +161,16 @@ impl AI {
         best_move
     }
 
+    ///
+    /// Method to recursively find the win probability for a given board state. Returns a value between 1.0 and 0.0
+    ///
+    /// # Arguments
+    /// * board    = Board struct representing the current state of the board (this will be updated each successive recursive call)
+    /// * curr_move = How deep into the recursion we are. Also worth noting that if curr_move % 2 == 0, then this is a move made by the
+    ///               the AI, otherwise it is a move made by the opponent
+    /// * last_move = Integer indicating depth at which to stop recursion and make a best guess of prob based on board state
+    ///
     fn find_win_probability(&self, board: Board, curr_move: i32, last_move: i32) -> f32 {
-        //Check win for AI turn
         let mut moves = Vec::new();
         for i in 0..BOARD_SIZE.1 {
             if !board.is_column_full(i as usize) {
@@ -118,10 +181,10 @@ impl AI {
                 //If move produces end result, return an absolute probability of 1 (if current move_check is for team) or 0 (for opp)
                 if move_check.has_end_result() {
                     return (1-(self.team-move_check.team).abs()%2) as f32;
-                //If curr_move is not last move, recurse on subsequent moves from the current move_check
+                //If curr_move is not last move, recurse on subsequent moves from the current move_check and add result to a list
                 } else if curr_move < last_move {
                     moves.push(self.find_win_probability(move_check.board, curr_move+1, last_move));
-                //Base case - this is the last move, so just return current probability of win for this move_check relative to self.team
+                //Base case - this is the last move, so just add the current probability of win for this move_check to the list
                 } else {
                     moves.push(move_check.get_win_probability(self.team));
                 }
@@ -130,9 +193,11 @@ impl AI {
         //Edge case - no moves to make, return 0 probability (can't win)
         if moves.is_empty() {
             0f32
+        //If the list of evaluated moves has a guaranteed outcome of 1.0 or 0.0, then return that value because that move will certainly be made
         } else if moves.contains(&((curr_move % 2) as f32)) {
             (curr_move % 2) as f32
         //Otherwise, return average of all possibilities
+        //TODO: Consider picking "best" move instead?
         } else {
             moves.iter().sum::<f32>()/(moves.len() as f32)
         }
